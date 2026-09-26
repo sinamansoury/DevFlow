@@ -1,23 +1,19 @@
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
-
 from rest_framework import generics
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.exceptions import PermissionDenied
-
 from .models import Workspace
 from .serializers import (
     WorkspaceSerializer,
     WorkspaceMemberSerializer,
     AddWorkspaceMemberSerializer,
 )
-
 from users.models import User
 from audit.models import AuditLog
-
 from .permissions import (
     IsWorkspaceMember,
     IsWorkspaceOwner,
+    IsWorkspaceOwnerByUrl,
 )
 
 
@@ -25,19 +21,19 @@ class WorkspaceListCreateView(generics.ListCreateAPIView):
     serializer_class = WorkspaceSerializer
     permission_classes = [IsAuthenticated]
 
+
+
     def get_queryset(self):
         return (
-            Workspace.objects.select_related(
-                "owner",
-            )
-            .prefetch_related(
-                "members",
-            )
+            Workspace.objects
+            .select_related("owner")
+            .prefetch_related("members")
             .filter(
-                Q(owner=self.request.user)
-                | Q(members=self.request.user)
-            ).distinct()
+                owner=self.request.user
+            )
+            .distinct()
         )
+
     def perform_create(self, serializer):
         workspace = serializer.save(
             owner=self.request.user
@@ -61,7 +57,6 @@ class WorkspaceRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
     lookup_url_kwarg = "id"
 
     def get_permissions(self):
-
         if self.request.method in [
             "PUT",
             "PATCH",
@@ -71,7 +66,6 @@ class WorkspaceRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
                 IsAuthenticated,
                 IsWorkspaceOwner,
             ]
-
         else:
             permission_classes = [
                 IsAuthenticated,
@@ -85,20 +79,17 @@ class WorkspaceRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
 
     def get_queryset(self):
         return (
-            Workspace.objects.select_related(
-                "owner",
-            )
-            .prefetch_related(
-                "members",
-            )
+            Workspace.objects
+            .select_related("owner")
+            .prefetch_related("members")
             .filter(
                 Q(owner=self.request.user)
                 | Q(members=self.request.user)
-            ).distinct()
+            )
+            .distinct()
         )
 
     def perform_update(self, serializer):
-
         workspace = serializer.instance
 
         old_value = {
@@ -124,7 +115,6 @@ class WorkspaceRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
         )
 
     def perform_destroy(self, instance):
-
         AuditLog.objects.create(
             user=self.request.user,
             entity_type="WORKSPACE",
@@ -138,39 +128,32 @@ class WorkspaceRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
 
 class WorkspaceMemberListView(generics.ListAPIView):
     serializer_class = WorkspaceMemberSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [
+        IsAuthenticated,
+        IsWorkspaceOwnerByUrl,
+    ]
 
     def get_queryset(self):
-
         workspace = get_object_or_404(
             Workspace,
             id=self.kwargs["workspace_id"],
         )
-
-        if (
-            workspace.owner != self.request.user
-            and not workspace.members.filter(
-                id=self.request.user.id
-            ).exists()
-        ):
-            raise PermissionDenied()
 
         return workspace.members.all()
 
 
 class WorkspaceMemberAddView(generics.CreateAPIView):
     serializer_class = AddWorkspaceMemberSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [
+        IsAuthenticated,
+        IsWorkspaceOwnerByUrl,
+    ]
 
     def perform_create(self, serializer):
-
         workspace = get_object_or_404(
             Workspace,
             id=self.kwargs["workspace_id"],
         )
-
-        if workspace.owner != self.request.user:
-            raise PermissionDenied()
 
         user = User.objects.get(
             email=serializer.validated_data["email"]
@@ -193,39 +176,32 @@ class WorkspaceMemberAddView(generics.CreateAPIView):
 
 class WorkspaceMemberDeleteView(generics.DestroyAPIView):
     serializer_class = WorkspaceMemberSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [
+        IsAuthenticated,
+        IsWorkspaceOwnerByUrl,
+    ]
     lookup_url_kwarg = "user_id"
 
     def get_queryset(self):
-
-        workspace = get_object_or_404(
+        self.workspace = get_object_or_404(
             Workspace,
             id=self.kwargs["workspace_id"],
         )
 
-        if workspace.owner != self.request.user:
-            raise PermissionDenied()
-
-        return workspace.members.all()
+        return self.workspace.members.all()
 
     def perform_destroy(self, instance):
-
-        workspace = get_object_or_404(
-            Workspace,
-            id=self.kwargs["workspace_id"],
-        )
-
-        # جلوگیری از حذف Owner از Memberها
-        if instance == workspace.owner:
+        if instance == self.workspace.owner:
+            from rest_framework.exceptions import PermissionDenied
             raise PermissionDenied()
 
-        workspace.members.remove(instance)
+        self.workspace.members.remove(instance)
 
         AuditLog.objects.create(
             user=self.request.user,
             entity_type="WORKSPACE",
-            entity_id=workspace.id,
-            entity_name=workspace.name,
+            entity_id=self.workspace.id,
+            entity_name=self.workspace.name,
             action=AuditLog.Action.REMOVE_MEMBER,
             old_value={
                 "user_id": instance.id,

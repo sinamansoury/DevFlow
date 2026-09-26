@@ -1,4 +1,8 @@
+from django.shortcuts import get_object_or_404
 from rest_framework.permissions import BasePermission
+
+from .models import Workspace
+
 
 
 class IsWorkspaceMember(BasePermission):
@@ -22,3 +26,17 @@ class IsWorkspaceOwner(BasePermission):
 
     def has_object_permission(self, request, view, obj):
         return obj.owner == request.user
+
+
+class IsWorkspaceOwnerByUrl(BasePermission):
+    """
+    فقط Owner Workspace مربوط به URL اجازه دسترسی دارد.
+    """
+
+    def has_permission(self, request, view):
+        workspace = get_object_or_404(
+            Workspace,
+            id=view.kwargs["workspace_id"],
+        )
+
+        return workspace.owner == request.user
