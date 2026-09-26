@@ -41,10 +41,19 @@ class TaskListCreateView(generics.ListCreateAPIView):
     ]
 
     def get_queryset(self):
-        return Task.objects.filter(
-            Q(project__workspace__owner=self.request.user)
-            | Q(project__workspace__members=self.request.user)
-        ).distinct()
+        return (
+            Task.objects.select_related(
+                 "project",
+                 "project__workspace",
+                 "assigned_to",
+                 "created_by",
+                 "updated_by",
+            )
+            .filter(
+                Q(project__workspace__owner=self.request.user)
+                | Q(project__workspace__members=self.request.user)
+            ).distinct()
+        )
 
     def perform_create(self, serializer):
         project = serializer.validated_data["project"]
@@ -88,10 +97,21 @@ class TaskRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
         ]
 
     def get_queryset(self):
-        return Task.objects.filter(
-            Q(project__workspace__members=self.request.user) |
-            Q(project__workspace__owner=self.request.user)
-        ).distinct()
+        return (
+            Task.objects
+            .select_related(
+                "project",
+                "project__workspace",
+                "assigned_to",
+                "created_by",
+                "updated_by",
+            )
+            .filter(
+                Q(project__workspace__members=self.request.user)
+                | Q(project__workspace__owner=self.request.user)
+            )
+            .distinct()
+        )
 
     def perform_update(self, serializer):
         task = serializer.instance

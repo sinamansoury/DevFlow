@@ -20,10 +20,14 @@ class ProjectListCreateView(generics.ListCreateAPIView):
     ]
 
     def get_queryset(self):
-            return Project.objects.filter(
-                Q(workspace__owner=self.request.user)
-                | Q(workspace__members=self.request.user)
-            ).distinct()
+            return (
+                Project.objects.selected_related(
+                    'workspace'
+                )
+                .filter(
+                    workspace__owner=self.request.user
+                ).distinct()
+            )
 
     def perform_create(self, serializer):
         workspace = serializer.validated_data["workspace"]
@@ -66,10 +70,17 @@ class ProjectRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
         ]
 
     def get_queryset(self):
-        return Project.objects.filter(
-            Q(workspace__owner=self.request.user)
-            | Q(workspace__members=self.request.user)
-        ).distinct()
+        return (
+            Project.objects
+            .select_related(
+                "workspace",
+            )
+            .filter(
+                Q(workspace__owner=self.request.user)
+                | Q(workspace__members=self.request.user)
+            )
+            .distinct()
+        )
 
     def perform_update(self, serializer):
         project = serializer.instance

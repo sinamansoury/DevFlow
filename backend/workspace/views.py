@@ -26,11 +26,18 @@ class WorkspaceListCreateView(generics.ListCreateAPIView):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return Workspace.objects.filter(
-            Q(owner=self.request.user)
-            | Q(members=self.request.user)
-        ).distinct()
-
+        return (
+            Workspace.objects.select_related(
+                "owner",
+            )
+            .prefetch_related(
+                "members",
+            )
+            .filter(
+                Q(owner=self.request.user)
+                | Q(members=self.request.user)
+            ).distinct()
+        )
     def perform_create(self, serializer):
         workspace = serializer.save(
             owner=self.request.user
@@ -49,9 +56,7 @@ class WorkspaceListCreateView(generics.ListCreateAPIView):
         )
 
 
-class WorkspaceRetrieveUpdateDestroyView(
-    generics.RetrieveUpdateDestroyAPIView
-):
+class WorkspaceRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = WorkspaceSerializer
     lookup_url_kwarg = "id"
 
@@ -79,10 +84,18 @@ class WorkspaceRetrieveUpdateDestroyView(
         ]
 
     def get_queryset(self):
-        return Workspace.objects.filter(
-            Q(owner=self.request.user)
-            | Q(members=self.request.user)
-        ).distinct()
+        return (
+            Workspace.objects.select_related(
+                "owner",
+            )
+            .prefetch_related(
+                "members",
+            )
+            .filter(
+                Q(owner=self.request.user)
+                | Q(members=self.request.user)
+            ).distinct()
+        )
 
     def perform_update(self, serializer):
 
