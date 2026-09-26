@@ -17,17 +17,17 @@ class Task(models.Model):
                                 on_delete=models.CASCADE,
                                 related_name='tasks')
     assigned_to = models.ForeignKey(settings.AUTH_USER_MODEL,
-                                    on_delete=models.CASCADE,
+                                    on_delete=models.PROTECT,
                                     related_name='assigned_tasks')
 
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL,
-                                   on_delete=models.CASCADE,
+                                   on_delete=models.PROTECT,
                                    related_name='created_tasks')
 
     updated_by = models.ForeignKey(settings.AUTH_USER_MODEL,
-                                    blank=True,
-                                    null=True,
-                                    on_delete=models.CASCADE,
+                                   blank=True,
+                                   null=True,
+                                   on_delete=models.SET_NULL,
                                     related_name='updated_tasks')
 
     status = models.CharField(max_length=15,

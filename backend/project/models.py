@@ -4,6 +4,8 @@ from workspace.models import Workspace
 
 # Create your models here.
 class Project(models.Model):
+    class Meta:
+        ordering = ["-created_at"]
     name = models.CharField(max_length=150)
     description = models.TextField(blank=True)
 

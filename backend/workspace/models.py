@@ -6,12 +6,14 @@ from django.conf import settings
 # Create your models here.
 
 class Workspace(models.Model):
+    class Meta:
+        ordering = ["-created_at"]
     name = models.CharField(max_length=150)
     description = models.TextField(blank=True)
 
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
+        on_delete=models.PROTECT,
         related_name='owned_workspaces',
     )
 

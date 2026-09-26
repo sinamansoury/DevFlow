@@ -27,7 +27,6 @@ class WorkspaceSerializer(serializers.ModelSerializer):
             "updated_at",
         ]
 
-
 class WorkspaceMemberSerializer(serializers.ModelSerializer):
 
     class Meta:
@@ -39,14 +38,6 @@ class WorkspaceMemberSerializer(serializers.ModelSerializer):
             "first_name",
             "last_name",
         ]
-
-        read_only_fields = [
-            "id",
-            "email",
-            "first_name",
-            "last_name",
-        ]
-
 
 class AddWorkspaceMemberSerializer(serializers.Serializer):
 

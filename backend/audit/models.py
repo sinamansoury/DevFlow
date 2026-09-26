@@ -2,9 +2,8 @@ from django.conf import settings
 from django.db import models
 
 
-
-# Create your models here.
 class AuditLog(models.Model):
+
     class Action(models.TextChoices):
         CREATE = "CREATE", "ایجاد"
         UPDATE = "UPDATE", "ویرایش"
@@ -15,7 +14,7 @@ class AuditLog(models.Model):
 
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
+        on_delete=models.PROTECT,
         related_name="audit_logs"
     )
 
