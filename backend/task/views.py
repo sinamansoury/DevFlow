@@ -1,18 +1,29 @@
 from django.utils import timezone
 from django.db.models import Q
+
 from rest_framework import generics
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import IsAuthenticated
+
+from django_filters.rest_framework import DjangoFilterBackend
+
+from drf_spectacular.utils import (
+    extend_schema,
+    OpenApiParameter,
+)
+
 from audit.models import AuditLog
 from .models import Task
-from .permissions import IsTaskWorkspaceMember, IsTaskWorkspaceOwner
+from .permissions import (
+    IsTaskWorkspaceMember,
+    IsTaskWorkspaceOwner,
+)
 from .serializers import TaskSerializer
-from rest_framework.filters import SearchFilter, OrderingFilter
-from django_filters.rest_framework import DjangoFilterBackend
+
 
 class TaskListCreateView(generics.ListCreateAPIView):
     serializer_class = TaskSerializer
-    permission_classes = [IsAuthenticated]  
+    permission_classes = [IsAuthenticated]
 
 
     search_fields = [
@@ -35,19 +46,63 @@ class TaskListCreateView(generics.ListCreateAPIView):
         "status",
     ]
 
+    @extend_schema(
+        summary="لیست Taskها",
+        description=(
+            "نمایش Taskهای Workspaceهایی که کاربر "
+            "Owner یا Member آن‌هاست."
+        ),
+        tags=["Task"],
+        parameters=[
+            OpenApiParameter(
+                name="status",
+                description="فیلتر بر اساس وضعیت Task",
+                required=False,
+                type=str,
+            ),
+            OpenApiParameter(
+                name="project",
+                description="فیلتر بر اساس Project ID",
+                required=False,
+                type=int,
+            ),
+            OpenApiParameter(
+                name="assigned_to",
+                description="فیلتر بر اساس User ID",
+                required=False,
+                type=int,
+            ),
+        ],
+    )
+    def get(self, request, *args, **kwargs):
+        return super().get(request, *args, **kwargs)
+
+    @extend_schema(
+        summary="ایجاد Task",
+        description=(
+            "ایجاد یک Task جدید. "
+            "فقط Owner Workspace پروژه می‌تواند Task ایجاد کند."
+        ),
+        tags=["Task"],
+    )
+    def post(self, request, *args, **kwargs):
+        return super().post(request, *args, **kwargs)
+
     def get_queryset(self):
         return (
-            Task.objects.select_related(
-                 "project",
-                 "project__workspace",
-                 "assigned_to",
-                 "created_by",
-                 "updated_by",
+            Task.objects
+            .select_related(
+                "project",
+                "project__workspace",
+                "assigned_to",
+                "created_by",
+                "updated_by",
             )
             .filter(
                 Q(project__workspace__owner=self.request.user)
                 | Q(project__workspace__members=self.request.user)
-            ).distinct()
+            )
+            .distinct()
         )
 
     def perform_create(self, serializer):
@@ -69,27 +124,71 @@ class TaskListCreateView(generics.ListCreateAPIView):
         )
 
 
-class TaskRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
+class TaskRetrieveUpdateDestroyView(
+    generics.RetrieveUpdateDestroyAPIView
+):
     serializer_class = TaskSerializer
-
     lookup_url_kwarg = "id"
 
     def get_permissions(self):
         if self.request.method == "DELETE":
             permission_classes = [
                 IsAuthenticated,
-                IsTaskWorkspaceOwner
+                IsTaskWorkspaceOwner,
             ]
         else:
             permission_classes = [
                 IsAuthenticated,
-                IsTaskWorkspaceMember
+                IsTaskWorkspaceMember,
             ]
 
         return [
             permission()
             for permission in permission_classes
         ]
+
+    @extend_schema(
+        summary="دریافت Task",
+        description=(
+            "نمایش اطلاعات Task برای Owner یا Member "
+            "Workspace."
+        ),
+        tags=["Task"],
+    )
+    def get(self, request, *args, **kwargs):
+        return super().get(request, *args, **kwargs)
+
+    @extend_schema(
+        summary="ویرایش Task",
+        description=(
+            "Owner می‌تواند اطلاعات Task را ویرایش کند. "
+            "Member فقط می‌تواند status را تغییر دهد."
+        ),
+        tags=["Task"],
+    )
+    def put(self, request, *args, **kwargs):
+        return super().put(request, *args, **kwargs)
+
+    @extend_schema(
+        summary="ویرایش Task",
+        description=(
+            "Owner می‌تواند اطلاعات Task را ویرایش کند. "
+            "Member فقط می‌تواند status را تغییر دهد."
+        ),
+        tags=["Task"],
+    )
+    def patch(self, request, *args, **kwargs):
+        return super().patch(request, *args, **kwargs)
+
+    @extend_schema(
+        summary="حذف Task",
+        description=(
+            "حذف Task. فقط Owner Workspace مجاز است."
+        ),
+        tags=["Task"],
+    )
+    def delete(self, request, *args, **kwargs):
+        return super().delete(request, *args, **kwargs)
 
     def get_queryset(self):
         return (
@@ -121,12 +220,14 @@ class TaskRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
 
             return value
 
-
-        serializer.validated_data.pop("finished_date", None)
+        serializer.validated_data.pop(
+            "finished_date",
+            None,
+        )
 
         new_status = serializer.validated_data.get(
             "status",
-            task.status
+            task.status,
         )
 
         extra_data = {}
@@ -140,19 +241,23 @@ class TaskRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
         if workspace.owner == self.request.user:
 
             old_value = {
-                field: make_json_safe(getattr(task, field))
+                field: make_json_safe(
+                    getattr(task, field)
+                )
                 for field in serializer.validated_data.keys()
             }
 
             serializer.save(
                 updated_by=self.request.user,
-                **extra_data
+                **extra_data,
             )
 
             task.refresh_from_db()
 
             new_value = {
-                field: make_json_safe(getattr(task, field))
+                field: make_json_safe(
+                    getattr(task, field)
+                )
                 for field in serializer.validated_data.keys()
             }
 
@@ -176,7 +281,6 @@ class TaskRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
 
             return
 
-
         if set(serializer.validated_data.keys()) != {"status"}:
             raise PermissionDenied()
 
@@ -184,7 +288,7 @@ class TaskRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
 
         serializer.save(
             updated_by=self.request.user,
-            **extra_data
+            **extra_data,
         )
 
         task.refresh_from_db()
@@ -196,16 +300,14 @@ class TaskRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
             entity_name=task.title,
             action=AuditLog.Action.UPDATE_STATUS,
             old_value={
-                "status": old_status
+                "status": old_status,
             },
             new_value={
-                "status": task.status
+                "status": task.status,
             },
         )
 
     def perform_destroy(self, instance):
-
-
         AuditLog.objects.create(
             user=self.request.user,
             entity_type="TASK",

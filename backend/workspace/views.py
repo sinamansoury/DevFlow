@@ -1,7 +1,11 @@
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
+
 from rest_framework import generics
 from rest_framework.permissions import IsAuthenticated
+
+from drf_spectacular.utils import extend_schema
+
 from .models import Workspace
 from .serializers import (
     WorkspaceSerializer,
@@ -21,7 +25,27 @@ class WorkspaceListCreateView(generics.ListCreateAPIView):
     serializer_class = WorkspaceSerializer
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        summary="لیست و ایجاد Workspace",
+        description=(
+            "نمایش Workspaceهای کاربر و ایجاد یک Workspace جدید. "
+            "کاربر ایجادکننده به عنوان Owner و Member اضافه می‌شود."
+        ),
+        tags=["Workspace"],
+    )
+    def get(self, request, *args, **kwargs):
+        return super().get(request, *args, **kwargs)
 
+    @extend_schema(
+        summary="ایجاد Workspace",
+        description=(
+            "ایجاد یک Workspace جدید. "
+            "کاربر واردشده به عنوان Owner تعیین می‌شود."
+        ),
+        tags=["Workspace"],
+    )
+    def post(self, request, *args, **kwargs):
+        return super().post(request, *args, **kwargs)
 
     def get_queryset(self):
         return (
@@ -76,6 +100,46 @@ class WorkspaceRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
             permission()
             for permission in permission_classes
         ]
+
+    @extend_schema(
+        summary="دریافت Workspace",
+        description=(
+            "نمایش اطلاعات Workspace برای Owner یا Member."
+        ),
+        tags=["Workspace"],
+    )
+    def get(self, request, *args, **kwargs):
+        return super().get(request, *args, **kwargs)
+
+    @extend_schema(
+        summary="ویرایش کامل Workspace",
+        description=(
+            "ویرایش کامل Workspace. فقط Owner مجاز است."
+        ),
+        tags=["Workspace"],
+    )
+    def put(self, request, *args, **kwargs):
+        return super().put(request, *args, **kwargs)
+
+    @extend_schema(
+        summary="ویرایش Workspace",
+        description=(
+            "ویرایش بخشی از اطلاعات Workspace. فقط Owner مجاز است."
+        ),
+        tags=["Workspace"],
+    )
+    def patch(self, request, *args, **kwargs):
+        return super().patch(request, *args, **kwargs)
+
+    @extend_schema(
+        summary="حذف Workspace",
+        description=(
+            "حذف Workspace. فقط Owner مجاز است."
+        ),
+        tags=["Workspace"],
+    )
+    def delete(self, request, *args, **kwargs):
+        return super().delete(request, *args, **kwargs)
 
     def get_queryset(self):
         return (
@@ -133,6 +197,17 @@ class WorkspaceMemberListView(generics.ListAPIView):
         IsWorkspaceOwnerByUrl,
     ]
 
+    @extend_schema(
+        summary="لیست اعضای Workspace",
+        description=(
+            "نمایش اعضای یک Workspace. "
+            "فقط Owner می‌تواند لیست اعضا را مشاهده کند."
+        ),
+        tags=["Workspace Members"],
+    )
+    def get(self, request, *args, **kwargs):
+        return super().get(request, *args, **kwargs)
+
     def get_queryset(self):
         workspace = get_object_or_404(
             Workspace,
@@ -148,6 +223,17 @@ class WorkspaceMemberAddView(generics.CreateAPIView):
         IsAuthenticated,
         IsWorkspaceOwnerByUrl,
     ]
+
+    @extend_schema(
+        summary="افزودن عضو به Workspace",
+        description=(
+            "افزودن یک کاربر به Workspace با استفاده از ایمیل. "
+            "فقط Owner می‌تواند عضو اضافه کند."
+        ),
+        tags=["Workspace Members"],
+    )
+    def post(self, request, *args, **kwargs):
+        return super().post(request, *args, **kwargs)
 
     def perform_create(self, serializer):
         workspace = get_object_or_404(
@@ -181,6 +267,17 @@ class WorkspaceMemberDeleteView(generics.DestroyAPIView):
         IsWorkspaceOwnerByUrl,
     ]
     lookup_url_kwarg = "user_id"
+
+    @extend_schema(
+        summary="حذف عضو از Workspace",
+        description=(
+            "حذف یک عضو از Workspace. "
+            "فقط Owner مجاز است و Owner خودش قابل حذف نیست."
+        ),
+        tags=["Workspace Members"],
+    )
+    def delete(self, request, *args, **kwargs):
+        return super().delete(request, *args, **kwargs)
 
     def get_queryset(self):
         self.workspace = get_object_or_404(
