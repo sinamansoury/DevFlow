@@ -14,11 +14,6 @@ class TaskListCreateView(generics.ListCreateAPIView):
     serializer_class = TaskSerializer
     permission_classes = [IsAuthenticated]  
 
-    filter_backends = [
-        DjangoFilterBackend,
-        SearchFilter,
-        OrderingFilter,
-    ]
 
     search_fields = [
         "title",
