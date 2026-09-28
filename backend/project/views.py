@@ -216,3 +216,16 @@ class ProjectRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
         )
 
         instance.delete()
+
+class MyProjectListView(generics.ListAPIView):
+    serializer_class = ProjectSerializer
+    permission_classes = [
+        IsAuthenticated
+    ]
+
+    def get_queryset(self):
+        user = self.request.user
+
+        return Project.objects.filter(
+            workspace__members=user
+        ).distinct()
