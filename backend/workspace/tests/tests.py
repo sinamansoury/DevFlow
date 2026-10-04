@@ -485,3 +485,22 @@ def test_owner_cannot_mass_assign_workspace_members(api_client,owner,member,stra
     assert workspace.members.filter(id=member.id).exists()
     assert not workspace.members.filter(id=stranger.id).exists()
 
+@pytest.mark.django_db
+def test_owner_cannot_add_member_with_invalid_email(api_client,owner,workspace,):
+    api_client.force_authenticate(user=owner)
+
+    response = api_client.post(
+        f"/api/workspaces/{workspace.id}/members/add/",
+        {"email": "invalid-email"},
+        format="json",
+    )
+
+    assert response.status_code == 400
+
+    assert "email" in response.data
+
+    assert not AuditLog.objects.filter(
+        entity_type="WORKSPACE",
+        entity_id=workspace.id,
+        action=AuditLog.Action.ADD_MEMBER,
+    ).exists()

@@ -11,7 +11,7 @@ class ProjectSerializer(serializers.ModelSerializer):
 
         read_only_fields = [
             "id",
-
+            "workspace",
             "created_at",
             "updated_at",
         ]

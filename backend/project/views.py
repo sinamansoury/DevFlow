@@ -1,4 +1,6 @@
+from django.db import transaction
 from django.db.models import Q
+from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 
 from rest_framework import generics
@@ -15,9 +17,11 @@ from .permissions import (
     IsProjectWorkspaceMember,
     IsProjectWorkspaceOwner,
 )
+from workspace.permissions import IsWorkspaceOwnerByUrl
+from workspace.models import Workspace
 
 
-class ProjectListCreateView(generics.ListCreateAPIView):
+class ProjectListView(generics.ListAPIView):
     serializer_class = ProjectSerializer
     permission_classes = [IsAuthenticated]
 
@@ -55,17 +59,6 @@ class ProjectListCreateView(generics.ListCreateAPIView):
     def get(self, request, *args, **kwargs):
         return super().get(request, *args, **kwargs)
 
-    @extend_schema(
-        summary="ایجاد پروژه",
-        description=(
-            "ایجاد پروژه در یک Workspace. "
-            "فقط Owner Workspace می‌تواند پروژه ایجاد کند."
-        ),
-        tags=["Project"],
-    )
-    def post(self, request, *args, **kwargs):
-        return super().post(request, *args, **kwargs)
-
     def get_queryset(self):
         return (
             Project.objects
@@ -79,21 +72,42 @@ class ProjectListCreateView(generics.ListCreateAPIView):
             .distinct()
         )
 
+class ProjectCreateView(generics.CreateAPIView):
+    serializer_class = ProjectSerializer
+    permission_classes = [
+        IsAuthenticated,
+        IsWorkspaceOwnerByUrl
+    ]
+
+    @extend_schema(
+        summary="ایجاد پروژه",
+        description=(
+                "ایجاد پروژه در یک Workspace. "
+                "فقط Owner Workspace می‌تواند پروژه ایجاد کند."
+        ),
+        tags=["Project"],
+    )
+    def post(self, request, *args, **kwargs):
+        return super().post(request, *args, **kwargs)
+
     def perform_create(self, serializer):
-        workspace = serializer.validated_data["workspace"]
-
-        if workspace.owner != self.request.user:
-            raise PermissionDenied()
-
-        project = serializer.save()
-
-        AuditLog.objects.create(
-            user=self.request.user,
-            entity_type="PROJECT",
-            entity_id=project.id,
-            entity_name=project.name,
-            action=AuditLog.Action.CREATE,
+        workspace = get_object_or_404(
+            Workspace,
+            id=self.kwargs["workspace_id"],
         )
+
+        with transaction.atomic():
+            project = serializer.save(
+                workspace=workspace
+            )
+
+            AuditLog.objects.create(
+                user=self.request.user,
+                entity_type="PROJECT",
+                entity_id=project.id,
+                entity_name=project.name,
+                action=AuditLog.Action.CREATE,
+            )
 
 
 class ProjectRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
