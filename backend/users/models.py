@@ -4,6 +4,8 @@ from .managers import UserManager
 # Create your models here.
 
 class User(AbstractUser):
+    class Meta:
+        ordering = ['id']
     username = None
     email = models.EmailField(
         unique=True

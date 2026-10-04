@@ -5,6 +5,7 @@ from rest_framework import generics
 from rest_framework.permissions import IsAuthenticated
 
 from drf_spectacular.utils import extend_schema
+from rest_framework.exceptions import ValidationError
 
 from .models import Workspace
 from .serializers import (
@@ -53,10 +54,12 @@ class WorkspaceListCreateView(generics.ListCreateAPIView):
             .select_related("owner")
             .prefetch_related("members")
             .filter(
-                owner=self.request.user
+                Q(owner=self.request.user) |
+                Q(members=self.request.user)
             )
             .distinct()
         )
+
 
     def perform_create(self, serializer):
         workspace = serializer.save(
@@ -244,6 +247,11 @@ class WorkspaceMemberAddView(generics.CreateAPIView):
         user = User.objects.get(
             email=serializer.validated_data["email"]
         )
+
+        if workspace.members.filter(id=user.id).exists():
+            raise ValidationError({
+                "email": "این کاربر قبلاً عضو Workspace است."
+            })
 
         workspace.members.add(user)
 
