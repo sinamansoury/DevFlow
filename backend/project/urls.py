@@ -3,10 +3,6 @@ from .views import ProjectRetrieveUpdateDestroyView, ProjectListView, ProjectCre
 
 urlpatterns = [
     path("",ProjectListView.as_view(),name="project-list",),
-    path(
-        "workspace/<int:workspace_id>/",
-        ProjectCreateView.as_view(),
-        name="project-list-create",
-    ),
+    path("workspace/<int:workspace_id>/",ProjectCreateView.as_view(),name="project-list-create",),
     path("<int:id>/", ProjectRetrieveUpdateDestroyView.as_view(),name="project-detail",),
 ]

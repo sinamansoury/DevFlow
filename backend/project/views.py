@@ -72,12 +72,14 @@ class ProjectListView(generics.ListAPIView):
             .distinct()
         )
 
+
 class ProjectCreateView(generics.CreateAPIView):
     serializer_class = ProjectSerializer
     permission_classes = [
         IsAuthenticated,
         IsWorkspaceOwnerByUrl
     ]
+    lookup_url_kwarg = "id"
 
     @extend_schema(
         summary="ایجاد پروژه",
@@ -200,46 +202,36 @@ class ProjectRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
             for field in serializer.validated_data.keys()
         }
 
-        serializer.save()
+        with transaction.atomic():
+            serializer.save()
 
-        new_value = {
-            field: value
-            for field, value in serializer.validated_data.items()
-        }
+            new_value = {
+                field: value
+                for field, value in serializer.validated_data.items()
+            }
 
-        AuditLog.objects.create(
-            user=self.request.user,
-            entity_type="PROJECT",
-            entity_id=project.id,
-            entity_name=project.name,
-            action=AuditLog.Action.UPDATE,
-            old_value=old_value,
-            new_value=new_value,
-        )
+            AuditLog.objects.create(
+                user=self.request.user,
+                entity_type="PROJECT",
+                entity_id=project.id,
+                entity_name=project.name,
+                action=AuditLog.Action.UPDATE,
+                old_value=old_value,
+                new_value=new_value,
+            )
 
     def perform_destroy(self, instance):
         project_id = instance.id
         project_name = instance.name
 
-        AuditLog.objects.create(
-            user=self.request.user,
-            entity_type="PROJECT",
-            entity_id=project_id,
-            entity_name=project_name,
-            action=AuditLog.Action.DELETE,
-        )
+        with transaction.atomic():
+            AuditLog.objects.create(
+                user=self.request.user,
+                entity_type="PROJECT",
+                entity_id=project_id,
+                entity_name=project_name,
+                action=AuditLog.Action.DELETE,
+            )
 
-        instance.delete()
+            instance.delete()
 
-class MyProjectListView(generics.ListAPIView):
-    serializer_class = ProjectSerializer
-    permission_classes = [
-        IsAuthenticated
-    ]
-
-    def get_queryset(self):
-        user = self.request.user
-
-        return Project.objects.filter(
-            workspace__members=user
-        ).distinct()
