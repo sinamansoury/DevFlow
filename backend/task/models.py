@@ -5,6 +5,8 @@ from project.models import Project
 
 # Create your models here.
 class Task(models.Model):
+    class Meta:
+        ordering = ["-created_at"]
     class TaskStatus(models.TextChoices):
         TODO = "TODO", "انجام نشده"
         IN_PROGRESS = "IN_PROGRESS", "درحال انجام"

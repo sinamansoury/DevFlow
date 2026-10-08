@@ -1,3 +1,5 @@
+from django.db import transaction
+from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.db.models import Q
 
@@ -7,10 +9,7 @@ from rest_framework.permissions import IsAuthenticated
 
 
 
-from drf_spectacular.utils import (
-    extend_schema,
-    OpenApiParameter,
-)
+from drf_spectacular.utils import (extend_schema,OpenApiParameter,)
 
 from audit.models import AuditLog
 from .models import Task
@@ -19,9 +18,10 @@ from .permissions import (
     IsTaskWorkspaceOwner,
 )
 from .serializers import TaskSerializer
+from project.models import Project
 
 
-class TaskListCreateView(generics.ListCreateAPIView):
+class TaskListView(generics.ListCreateAPIView):
     serializer_class = TaskSerializer
     permission_classes = [IsAuthenticated]
 
@@ -77,17 +77,6 @@ class TaskListCreateView(generics.ListCreateAPIView):
     def get(self, request, *args, **kwargs):
         return super().get(request, *args, **kwargs)
 
-    @extend_schema(
-        summary="ایجاد Task",
-        description=(
-            "ایجاد یک Task جدید. "
-            "فقط Owner Workspace پروژه می‌تواند Task ایجاد کند."
-        ),
-        tags=["Task"],
-    )
-    def post(self, request, *args, **kwargs):
-        return super().post(request, *args, **kwargs)
-
     def get_queryset(self):
         return (
             Task.objects
@@ -105,28 +94,54 @@ class TaskListCreateView(generics.ListCreateAPIView):
             .distinct()
         )
 
+
+class TaskCreateView(generics.CreateAPIView):
+    serializer_class = TaskSerializer
+    permission_classes = [
+        IsAuthenticated,
+        IsTaskWorkspaceOwner,
+        ]
+
+
+    @extend_schema(
+        summary="ایجاد Task",
+        description=(
+                "ایجاد یک Task جدید. "
+                "فقط Owner Workspace پروژه می‌تواند Task ایجاد کند."
+        ),
+        tags=["Task"],
+    )
+    def post(self, request, *args, **kwargs):
+        return super().post(request, *args, **kwargs)
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+
+        context["project"] = get_object_or_404(
+            Project,
+            id=self.kwargs["project_id"],
+        )
+
+        return context
+
     def perform_create(self, serializer):
-        project = serializer.validated_data["project"]
+        project = self.get_serializer_context()["project"]
 
-        if project.workspace.owner != self.request.user:
-            raise PermissionDenied()
+        with transaction.atomic():
+            task = serializer.save(
+                created_by=self.request.user,
+                project = project
+            )
 
-        task = serializer.save(
-            created_by=self.request.user
-        )
+            AuditLog.objects.create(
+                user=self.request.user,
+                entity_type="TASK",
+                entity_id=task.id,
+                entity_name=task.title,
+                action=AuditLog.Action.CREATE,
+            )
 
-        AuditLog.objects.create(
-            user=self.request.user,
-            entity_type="TASK",
-            entity_id=task.id,
-            entity_name=task.title,
-            action=AuditLog.Action.CREATE,
-        )
-
-
-class TaskRetrieveUpdateDestroyView(
-    generics.RetrieveUpdateDestroyAPIView
-):
+class TaskRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = TaskSerializer
     lookup_url_kwarg = "id"
 
@@ -240,12 +255,63 @@ class TaskRetrieveUpdateDestroyView(
 
         if workspace.owner == self.request.user:
 
-            old_value = {
-                field: make_json_safe(
-                    getattr(task, field)
+            with transaction.atomic():
+
+                old_values = {}
+                new_values = {}
+
+
+                for field, new_value in serializer.validated_data.items():
+                    old_value = getattr(task, field)
+
+                    old_safe = make_json_safe(old_value)
+                    new_safe = make_json_safe(new_value)
+
+                    if old_safe != new_safe:
+                        old_values[field] = old_safe
+                        new_values[field] = new_safe
+
+
+                if "finished_date" in extra_data:
+                    old_finished_date = make_json_safe(
+                        task.finished_date
+                    )
+
+                    new_finished_date = make_json_safe(
+                        extra_data["finished_date"]
+                    )
+
+                    if old_finished_date != new_finished_date:
+                        old_values["finished_date"] = old_finished_date
+                        new_values["finished_date"] = new_finished_date
+
+                serializer.save(
+                    updated_by=self.request.user,
+                    **extra_data,
                 )
-                for field in serializer.validated_data.keys()
-            }
+
+                task.refresh_from_db()
+
+                if old_values:
+                    AuditLog.objects.create(
+                        user=self.request.user,
+                        entity_type="TASK",
+                        entity_id=task.id,
+                        entity_name=task.title,
+                        action=AuditLog.Action.UPDATE,
+                        old_value=old_values,
+                        new_value=new_values,
+                    )
+
+            return
+
+
+        if set(serializer.validated_data.keys()) != {"status"}:
+            raise PermissionDenied()
+
+        old_status = task.status
+
+        with transaction.atomic():
 
             serializer.save(
                 updated_by=self.request.user,
@@ -254,66 +320,29 @@ class TaskRetrieveUpdateDestroyView(
 
             task.refresh_from_db()
 
-            new_value = {
-                field: make_json_safe(
-                    getattr(task, field)
+            if old_status != task.status:
+                AuditLog.objects.create(
+                    user=self.request.user,
+                    entity_type="TASK",
+                    entity_id=task.id,
+                    entity_name=task.title,
+                    action=AuditLog.Action.UPDATE_STATUS,
+                    old_value={
+                        "status": old_status,
+                    },
+                    new_value={
+                        "status": task.status,
+                    },
                 )
-                for field in serializer.validated_data.keys()
-            }
+    def perform_destroy(self, instance):
 
-            if "status" in serializer.validated_data:
-                new_value["status"] = task.status
-
-            if "finished_date" in extra_data:
-                new_value["finished_date"] = make_json_safe(
-                    task.finished_date
-                )
-
+        with transaction.atomic():
             AuditLog.objects.create(
                 user=self.request.user,
                 entity_type="TASK",
-                entity_id=task.id,
-                entity_name=task.title,
-                action=AuditLog.Action.UPDATE,
-                old_value=old_value,
-                new_value=new_value,
+                entity_id=instance.id,
+                entity_name=instance.title,
+                action=AuditLog.Action.DELETE,
             )
 
-            return
-
-        if set(serializer.validated_data.keys()) != {"status"}:
-            raise PermissionDenied()
-
-        old_status = task.status
-
-        serializer.save(
-            updated_by=self.request.user,
-            **extra_data,
-        )
-
-        task.refresh_from_db()
-
-        AuditLog.objects.create(
-            user=self.request.user,
-            entity_type="TASK",
-            entity_id=task.id,
-            entity_name=task.title,
-            action=AuditLog.Action.UPDATE_STATUS,
-            old_value={
-                "status": old_status,
-            },
-            new_value={
-                "status": task.status,
-            },
-        )
-
-    def perform_destroy(self, instance):
-        AuditLog.objects.create(
-            user=self.request.user,
-            entity_type="TASK",
-            entity_id=instance.id,
-            entity_name=instance.title,
-            action=AuditLog.Action.DELETE,
-        )
-
-        instance.delete()
+            instance.delete()

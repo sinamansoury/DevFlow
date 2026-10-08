@@ -35,6 +35,7 @@ class TaskSerializer(serializers.ModelSerializer):
 
         read_only_fields = [
             "id",
+            "project",
             "created_at",
             "updated_at",
             "created_by",
@@ -66,10 +67,9 @@ class TaskSerializer(serializers.ModelSerializer):
 
         return name or obj.created_by.email
 
-
     def validate(self, attrs):
 
-        project = attrs.get("project")
+        project = self.context.get("project")
 
         if project is None and self.instance:
             project = self.instance.project

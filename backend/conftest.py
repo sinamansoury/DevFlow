@@ -66,12 +66,12 @@ def project(workspace):
 
 
 @pytest.fixture
-def task(project, owner):
+def task(project, owner, member):
     return Task.objects.create(
         title="Test Task",
         description="Test Description",
         project=project,
-        assigned_to=owner,
+        assigned_to=member,
         created_by=owner,
         started_date="2026-10-01T10:00:00Z",
         deadline="2026-10-10T10:00:00Z",
