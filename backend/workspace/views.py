@@ -1,3 +1,4 @@
+from django.db import transaction
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
 
@@ -62,21 +63,22 @@ class WorkspaceListCreateView(generics.ListCreateAPIView):
 
 
     def perform_create(self, serializer):
-        workspace = serializer.save(
-            owner=self.request.user
-        )
+        with transaction.atomic():
+            workspace = serializer.save(
+                owner=self.request.user
+            )
 
-        workspace.members.add(
-            self.request.user
-        )
+            workspace.members.add(
+                self.request.user
+            )
 
-        AuditLog.objects.create(
-            user=self.request.user,
-            entity_type="WORKSPACE",
-            entity_id=workspace.id,
-            entity_name=workspace.name,
-            action=AuditLog.Action.CREATE,
-        )
+            AuditLog.objects.create(
+                user=self.request.user,
+                entity_type="WORKSPACE",
+                entity_id=workspace.id,
+                entity_name=workspace.name,
+                action=AuditLog.Action.CREATE,
+            )
 
 
 class WorkspaceRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
@@ -164,33 +166,35 @@ class WorkspaceRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
             for field in serializer.validated_data.keys()
         }
 
-        serializer.save()
+        with transaction.atomic():
+            serializer.save()
 
-        new_value = {
-            field: value
-            for field, value in serializer.validated_data.items()
-        }
+            new_value = {
+                field: value
+                for field, value in serializer.validated_data.items()
+            }
 
-        AuditLog.objects.create(
-            user=self.request.user,
-            entity_type="WORKSPACE",
-            entity_id=workspace.id,
-            entity_name=workspace.name,
-            action=AuditLog.Action.UPDATE,
-            old_value=old_value,
-            new_value=new_value,
-        )
+            AuditLog.objects.create(
+                user=self.request.user,
+                entity_type="WORKSPACE",
+                entity_id=workspace.id,
+                entity_name=workspace.name,
+                action=AuditLog.Action.UPDATE,
+                old_value=old_value,
+                new_value=new_value,
+            )
 
     def perform_destroy(self, instance):
-        AuditLog.objects.create(
-            user=self.request.user,
-            entity_type="WORKSPACE",
-            entity_id=instance.id,
-            entity_name=instance.name,
-            action=AuditLog.Action.DELETE,
-        )
+        with transaction.atomic():
+            AuditLog.objects.create(
+                user=self.request.user,
+                entity_type="WORKSPACE",
+                entity_id=instance.id,
+                entity_name=instance.name,
+                action=AuditLog.Action.DELETE,
+            )
 
-        instance.delete()
+            instance.delete()
 
 
 class WorkspaceMemberListView(generics.ListAPIView):
@@ -253,19 +257,20 @@ class WorkspaceMemberAddView(generics.CreateAPIView):
                 "email": "این کاربر قبلاً عضو Workspace است."
             })
 
-        workspace.members.add(user)
+        with transaction.atomic():
+            workspace.members.add(user)
 
-        AuditLog.objects.create(
-            user=self.request.user,
-            entity_type="WORKSPACE",
-            entity_id=workspace.id,
-            entity_name=workspace.name,
-            action=AuditLog.Action.ADD_MEMBER,
-            new_value={
-                "user_id": user.id,
-                "email": user.email,
-            },
-        )
+            AuditLog.objects.create(
+                user=self.request.user,
+                entity_type="WORKSPACE",
+                entity_id=workspace.id,
+                entity_name=workspace.name,
+                action=AuditLog.Action.ADD_MEMBER,
+                new_value={
+                    "user_id": user.id,
+                    "email": user.email,
+                },
+            )
 
 
 class WorkspaceMemberDeleteView(generics.DestroyAPIView):
@@ -300,16 +305,17 @@ class WorkspaceMemberDeleteView(generics.DestroyAPIView):
             from rest_framework.exceptions import PermissionDenied
             raise PermissionDenied()
 
-        self.workspace.members.remove(instance)
+        with transaction.atomic():
+            self.workspace.members.remove(instance)
 
-        AuditLog.objects.create(
-            user=self.request.user,
-            entity_type="WORKSPACE",
-            entity_id=self.workspace.id,
-            entity_name=self.workspace.name,
-            action=AuditLog.Action.REMOVE_MEMBER,
-            old_value={
-                "user_id": instance.id,
-                "email": instance.email,
-            },
-        )
+            AuditLog.objects.create(
+                user=self.request.user,
+                entity_type="WORKSPACE",
+                entity_id=self.workspace.id,
+                entity_name=self.workspace.name,
+                action=AuditLog.Action.REMOVE_MEMBER,
+                old_value={
+                    "user_id": instance.id,
+                    "email": instance.email,
+                },
+            )

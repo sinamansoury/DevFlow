@@ -1,3 +1,3 @@
 from .base import *
 
-DEBUG = env.bool(DEBUG, default=False)
+DEBUG = env.bool("DEBUG", default=False)

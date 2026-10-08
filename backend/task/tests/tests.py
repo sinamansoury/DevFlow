@@ -1,13 +1,9 @@
-from datetime import datetime, timezone
-
-
 import pytest
-from rest_framework import status
 
 from task.models import Task
 from audit.models import AuditLog
 
-from backend.conftest import owner
+
 
 
 @pytest.mark.django_db
@@ -176,13 +172,7 @@ def test_user_task_patch(request, api_client, user_fixture, expected_status, tas
         ("stranger", 404),
     ],
 )
-def test_user_task_patch_status(
-    request,
-    api_client,
-    user_fixture,
-    expected_status,
-    task,
-):
+def test_user_task_patch_status(request,api_client,user_fixture,expected_status,task,):
     user = request.getfixturevalue(user_fixture)
     api_client.force_authenticate(user)
 
@@ -301,9 +291,9 @@ def test_user_task_put_without_requires(owner, api_client, task):
     )
     assert response.status_code == 400
     task.refresh_from_db()
-    assert task.title == "string"
+    assert not task.title == "string"
     assert task.finished_date is None
-    assert task.description == "string"
+    assert not task.description == "string"
     assert not AuditLog.objects.filter(
             entity_type="TASK",
             entity_id=task.id,

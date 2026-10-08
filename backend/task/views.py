@@ -21,7 +21,7 @@ from .serializers import TaskSerializer
 from project.models import Project
 
 
-class TaskListView(generics.ListCreateAPIView):
+class TaskListView(generics.ListAPIView):
     serializer_class = TaskSerializer
     permission_classes = [IsAuthenticated]
 
