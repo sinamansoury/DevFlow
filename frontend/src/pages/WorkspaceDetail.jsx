@@ -55,7 +55,7 @@ function WorkspaceDetail() {
       if (projectResponse.data.count) {
         setProjectTotalPages(
           Math.ceil(
-            projectResponse.data.count / 10
+            projectResponse.data.count / 9
           )
         )
       } else {
