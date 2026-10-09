@@ -1163,3 +1163,27 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   .auth-form-wrapper { padding: 28px 22px; }
   .auth-form h2 { font-size: 25px; }
 }
+
+
+.dashboard-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+.dashboard-card { min-width: 0; }
+.dashboard-cta { display: inline-flex; align-items: center; justify-content: center; width: auto; padding: 0 20px; margin-top: 16px; }
+.workspace-list-item { display: flex; align-items: center; gap: 12px; padding: 15px 0; border-bottom: 1px solid #1e293b; }
+.workspace-list-item:last-child { border-bottom: 0; }
+.workspace-list-item:hover .workspace-list-icon { background: rgba(99,102,241,.2); }
+.workspace-list-icon { display: grid; place-items: center; flex-shrink: 0; width: 42px; height: 42px; border-radius: 12px; background: rgba(99,102,241,.12); color: #a5b4fc; }
+.workspace-list-copy { display: flex; flex: 1; flex-direction: column; min-width: 0; gap: 4px; }
+.workspace-list-copy strong { font-size: 13px; }
+.workspace-list-copy small { overflow: hidden; color: #64748b; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+.user-box { gap: 10px; }
+.user-box .secondary-button { min-height: 34px; }
+.task-card-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.task-card-heading h3 { min-width: 0; }
+.task-edit-button { border: 1px solid #334155; background: #111827; color: #a5b4fc; border-radius: 7px; padding: 5px 8px; font: inherit; font-size: 11px; }
+.task-edit-button:hover { border-color: #6366f1; }
+@media (max-width: 900px) { .dashboard-grid { grid-template-columns: 1fr; } }
+@media (max-width: 760px) {
+  .workspace-list-item { gap: 9px; }
+  .workspace-list-item > .text-link { font-size: 11px; white-space: nowrap; }
+  .user-box { flex-wrap: wrap; }
+}
