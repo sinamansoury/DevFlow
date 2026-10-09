@@ -67,10 +67,8 @@ function ProjectDetail() {
         projectResponse.data.workspace
 
       const membersResponse = await api.get(
-        '/workspaces/' +
-          workspaceId +
-          '/members/'
-      )
+        '/workspaces/' + workspaceId + '/members/'
+      ).catch(() => ({ data: [] }))
 
       setProject(projectResponse.data)
 
@@ -179,20 +177,10 @@ function ProjectDetail() {
       }
 
       if (editMode && selectedTask) {
-
-  await api.patch(
-    '/tasks/' + selectedTask.id + '/',
-    data
-  )
-
-} else {
-
-  await api.post(
-    '/tasks/',
-    data
-  )
-
-}
+        await api.patch('/tasks/' + selectedTask.id + '/', data)
+      } else {
+        await api.post('/tasks/projects/' + id + '/', data)
+      }
 
       setShowModal(false)
 
