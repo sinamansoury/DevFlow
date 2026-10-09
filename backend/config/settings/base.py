@@ -135,6 +135,10 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AUTH_USER_MODEL = 'users.User'
 
 REST_FRAMEWORK = {
+
+    "EXCEPTION_HANDLER":
+        "config.exceptions.custom_exception_handler",
+
     'DEFAULT_AUTHENTICATION_CLASSES':(
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
@@ -153,6 +157,7 @@ REST_FRAMEWORK = {
     ],
     "DEFAULT_SCHEMA_CLASS":
         "drf_spectacular.openapi.AutoSchema",
+
 }
 from datetime import timedelta
 SIMPLE_JWT = {

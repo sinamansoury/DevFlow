@@ -102,7 +102,7 @@ def test_register_with_email_case_insensitive_duplicate(api_client, user):
     )
 
     assert response.status_code == 400
-    assert "email" in response.data
+    assert "email" in response.data["errors"]
 
 @pytest.mark.django_db
 def test_register_with_invalid_phone(api_client):
@@ -119,7 +119,7 @@ def test_register_with_invalid_phone(api_client):
     )
 
     assert response.status_code == 400
-    assert "phone" in response.data
+    assert "phone" in response.data["errors"]
 
 @pytest.mark.django_db
 def test_register_with_duplicate_phone(api_client, user):
@@ -136,7 +136,7 @@ def test_register_with_duplicate_phone(api_client, user):
     )
 
     assert response.status_code == 400
-    assert "phone" in response.data
+    assert "phone" in response.data["errors"]
 
 @pytest.mark.django_db
 def test_login_user(api_client):

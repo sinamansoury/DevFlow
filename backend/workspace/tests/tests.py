@@ -235,7 +235,10 @@ def test_owner_cannot_add_duplicate_member(api_client,owner,member,workspace):
     )
 
     assert response.status_code == 400
-    assert response.data["email"] == "این کاربر قبلاً عضو Workspace است."
+    assert (
+            str(response.data["errors"]["email"])
+            == "این کاربر قبلاً عضو Workspace است."
+    )
 
     assert workspace.members.filter(id=member.id).exists()
 
@@ -409,7 +412,6 @@ def test_cannot_delete_non_member_from_workspace(api_client,owner,stranger,works
         user_id=owner.id,
     ).exists()
 
-
 @pytest.mark.django_db
 @pytest.mark.parametrize(
     "endpoint",
@@ -429,7 +431,6 @@ def test_unauthenticated_user_cannot_access_workspace_member_endpoints(api_clien
 
     assert response.status_code == 401
 
-
 @pytest.mark.django_db
 def test_unauthenticated_user_cannot_delete_workspace_member(api_client,workspace,member,):
     response = api_client.delete(
@@ -438,7 +439,6 @@ def test_unauthenticated_user_cannot_delete_workspace_member(api_client,workspac
 
     assert response.status_code == 401
     assert workspace.members.filter(id=member.id).exists()
-
 
 @pytest.mark.django_db
 def test_owner_cannot_mass_assign_workspace_owner(api_client,owner,stranger,workspace,):
@@ -459,7 +459,6 @@ def test_owner_cannot_mass_assign_workspace_owner(api_client,owner,stranger,work
 
     assert workspace.owner == owner
     assert workspace.name == "Updated Workspace"
-
 
 @pytest.mark.django_db
 def test_owner_cannot_mass_assign_workspace_members(api_client,owner,member,stranger,workspace,):
@@ -497,7 +496,7 @@ def test_owner_cannot_add_member_with_invalid_email(api_client,owner,workspace,)
 
     assert response.status_code == 400
 
-    assert "email" in response.data
+    assert "email" in response.data["errors"]
 
     assert not AuditLog.objects.filter(
         entity_type="WORKSPACE",
