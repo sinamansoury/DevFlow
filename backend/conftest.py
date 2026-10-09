@@ -1,7 +1,7 @@
 import pytest
 
 from rest_framework.test import APIClient
-
+from django.core.cache import cache
 from users.models import User
 from workspace.models import Workspace
 from project.models import Project
@@ -86,3 +86,9 @@ def authenticated_client(api_client):
         return api_client
 
     return _authenticate
+
+@pytest.fixture(autouse=True)
+def clear_throttle_cache():
+    cache.clear()
+    yield
+    cache.clear()

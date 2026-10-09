@@ -7,11 +7,14 @@ from rest_framework_simplejwt.views import (
 from drf_spectacular.utils import extend_schema
 
 from .serializers import RegisterSerializer, UserSerializer
+from rest_framework.throttling import ScopedRateThrottle
 
 
 class RegisterView(generics.CreateAPIView):
     serializer_class = RegisterSerializer
     permission_classes = [AllowAny]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "register"
 
     @extend_schema(
         summary="ثبت‌نام کاربر",
@@ -24,6 +27,8 @@ class RegisterView(generics.CreateAPIView):
 
 
 class LoginView(TokenObtainPairView):
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "login"
 
     @extend_schema(
         summary="ورود کاربر",

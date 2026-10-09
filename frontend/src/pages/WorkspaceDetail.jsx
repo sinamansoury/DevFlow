@@ -144,7 +144,7 @@ function WorkspaceDetail() {
   return (
     <div className="dashboard" dir="rtl">
 
-      <Sidebar />
+      <Sidebar workspaceId={id} />
 
       <main className="main-content">
 
