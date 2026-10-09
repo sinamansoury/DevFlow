@@ -37,7 +37,7 @@ function Projects() {
 
         setTotalPages(
           Math.ceil(
-            response.data.count / 10
+            response.data.count / 9
           )
         )
 
