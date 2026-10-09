@@ -125,6 +125,8 @@ function ProjectDetail() {
 
   const openCreateModal = () => {
     setError('')
+    setEditMode(false)
+    setSelectedTask(null)
 
     setForm({
       title: '',
