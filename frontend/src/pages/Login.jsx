@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import api from '../services/api'
+import { getApiErrorMessage } from '../services/errors'
 
 function Login() {
   const navigate = useNavigate()
@@ -27,10 +28,7 @@ function Login() {
 
       navigate('/')
     } catch (error) {
-      setError(
-        error.response?.data?.detail ||
-        'ایمیل یا رمز عبور اشتباه است.'
-      )
+      setError(getApiErrorMessage(error, 'ایمیل یا رمز عبور اشتباه است.'))
     } finally {
       setLoading(false)
     }
