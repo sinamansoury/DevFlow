@@ -8,6 +8,7 @@ function ProjectDetail() {
   const [project, setProject] = useState(null)
   const [tasks, setTasks] = useState([])
   const [members, setMembers] = useState([])
+  const [isWorkspaceOwner, setIsWorkspaceOwner] = useState(false)
 
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -55,34 +56,23 @@ function ProjectDetail() {
       setLoading(true)
       setError('')
 
-      const projectResponse = await api.get(
-        '/projects/' + id + '/'
-      )
+      const [projectResponse, tasksResponse, userResponse] = await Promise.all([
+        api.get('/projects/' + id + '/'),
+        api.get('/tasks/?project=' + id),
+        api.get('/auth/me/'),
+      ])
 
-      const tasksResponse = await api.get(
-        '/tasks/?project=' + id
-      )
-
-      const workspaceId =
-        projectResponse.data.workspace
-
-      const membersResponse = await api.get(
-        '/workspaces/' +
-          workspaceId +
-          '/members/'
-      )
+      const workspaceId = projectResponse.data.workspace
+      const workspaceResponse = await api.get('/workspaces/' + workspaceId + '/')
+      const owner = Number(workspaceResponse.data.owner) === Number(userResponse.data.id)
+      const membersResponse = owner
+        ? await api.get('/workspaces/' + workspaceId + '/members/')
+        : { data: [] }
 
       setProject(projectResponse.data)
-
-      setTasks(
-        tasksResponse.data.results ||
-          tasksResponse.data
-      )
-
-      setMembers(
-        membersResponse.data.results ||
-          membersResponse.data
-      )
+      setIsWorkspaceOwner(owner)
+      setTasks(tasksResponse.data.results || tasksResponse.data)
+      setMembers(membersResponse.data.results || membersResponse.data)
 
     } catch (err) {
       console.error(err)
@@ -135,6 +125,8 @@ function ProjectDetail() {
 
   const openCreateModal = () => {
     setError('')
+    setEditMode(false)
+    setSelectedTask(null)
 
     setForm({
       title: '',
@@ -179,20 +171,10 @@ function ProjectDetail() {
       }
 
       if (editMode && selectedTask) {
-
-  await api.patch(
-    '/tasks/' + selectedTask.id + '/',
-    data
-  )
-
-} else {
-
-  await api.post(
-    '/tasks/',
-    data
-  )
-
-}
+        await api.patch('/tasks/' + selectedTask.id + '/', data)
+      } else {
+        await api.post('/tasks/projects/' + id + '/', data)
+      }
 
       setShowModal(false)
 
@@ -359,13 +341,9 @@ function ProjectDetail() {
 
           </div>
 
-          <button
-            className="primary-button"
-            onClick={openCreateModal}
-          >
-            <span>＋</span>
-            Task جدید
-          </button>
+          {isWorkspaceOwner && <button type="button" className="primary-button" onClick={openCreateModal}>
+            <span>＋</span> Task جدید
+          </button>}
 
         </div>
 
@@ -527,9 +505,10 @@ function ProjectDetail() {
 
                         </div>
 
-                        <h3>
-                          {task.title}
-                        </h3>
+                        <div className="task-card-heading">
+                          <h3>{task.title}</h3>
+                          {isWorkspaceOwner && <button type="button" className="task-edit-button" onClick={() => openEditModal(task)} aria-label={`ویرایش ${task.title}`}>ویرایش</button>}
+                        </div>
 
                         {task.description && (
                           <p>
@@ -599,14 +578,7 @@ function ProjectDetail() {
 
                 </div>
 
-                <button
-                  className="column-add"
-                  onClick={
-                    openCreateModal
-                  }
-                >
-                  ＋ افزودن Task
-                </button>
+                {isWorkspaceOwner && <button type="button" className="column-add" onClick={openCreateModal}>＋ افزودن Task</button>}
 
               </section>
             )

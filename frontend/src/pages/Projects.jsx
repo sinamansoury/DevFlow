@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import api from '../services/api'
 
 import Sidebar from '../components/Sidebar'
+import { getApiErrorMessage } from '../services/errors'
 function Projects() {
 
   const [projects, setProjects] = useState([])
@@ -37,7 +38,7 @@ function Projects() {
 
         setTotalPages(
           Math.ceil(
-            response.data.count / 10
+            response.data.count / 9
           )
         )
 
@@ -52,9 +53,7 @@ function Projects() {
 
       console.error(err)
 
-      setError(
-        'دریافت پروژه‌ها انجام نشد.'
-      )
+      setError(getApiErrorMessage(err, 'دریافت پروژه‌ها انجام نشد.'))
 
 
     } finally {

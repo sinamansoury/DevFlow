@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import api from '../services/api'
 import Sidebar from '../components/Sidebar'
+import { getApiErrorMessage } from '../services/errors'
 function WorkspaceDetail() {
   const { id } = useParams()
 
@@ -32,10 +33,7 @@ function WorkspaceDetail() {
 
       setWorkspace(workspaceResponse.data)
     } catch (error) {
-      setError(
-        error.response?.data?.detail ||
-        'دریافت Workspace انجام نشد.'
-      )
+      setError(getApiErrorMessage(error, 'دریافت Workspace انجام نشد.'))
     } finally {
       setLoading(false)
     }
@@ -55,7 +53,7 @@ function WorkspaceDetail() {
       if (projectResponse.data.count) {
         setProjectTotalPages(
           Math.ceil(
-            projectResponse.data.count / 10
+            projectResponse.data.count / 9
           )
         )
       } else {
@@ -83,10 +81,9 @@ function WorkspaceDetail() {
     e.preventDefault()
 
     try {
-      await api.post('/projects/', {
+      await api.post(`/projects/workspace/${id}/`, {
         name: form.name,
         description: form.description,
-        workspace: Number(id),
       })
 
       setForm({
@@ -100,17 +97,7 @@ function WorkspaceDetail() {
 
       loadData()
     } catch (error) {
-      const data = error.response?.data
-
-      if (data && typeof data === 'object') {
-        setError(
-          Object.values(data)
-            .flat()
-            .join(' ')
-        )
-      } else {
-        setError('ساخت پروژه انجام نشد.')
-      }
+      setError(getApiErrorMessage(error, 'ساخت پروژه انجام نشد.'))
     }
   }
 
@@ -184,15 +171,10 @@ function WorkspaceDetail() {
             </p>
           </div>
 
-          <Link
-            to="/workspaces"
-            style={{
-              color: '#818cf8',
-              fontSize: '13px',
-            }}
-          >
-            ← همه Workspaceها
-          </Link>
+          <div className="topbar-actions">
+            <Link to={`/workspaces/${id}/members`} className="secondary-button">مدیریت اعضا</Link>
+            <Link to="/workspaces" className="text-link">← همه Workspaceها</Link>
+          </div>
 
         </div>
 
