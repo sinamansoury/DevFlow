@@ -16,6 +16,7 @@ from .serializers import (
 )
 from users.models import User
 from audit.models import AuditLog
+from audit.utils import make_json_safe
 from .permissions import (
     IsWorkspaceMember,
     IsWorkspaceOwner,
@@ -161,18 +162,18 @@ class WorkspaceRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
     def perform_update(self, serializer):
         workspace = serializer.instance
 
-        old_value = {
+        old_value = make_json_safe({
             field: getattr(workspace, field)
             for field in serializer.validated_data.keys()
-        }
+        })
 
         with transaction.atomic():
             serializer.save()
 
-            new_value = {
+            new_value = make_json_safe({
                 field: value
                 for field, value in serializer.validated_data.items()
-            }
+            })
 
             AuditLog.objects.create(
                 user=self.request.user,
