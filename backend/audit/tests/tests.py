@@ -1,5 +1,4 @@
 import pytest
-from django.urls import reverse
 from audit.models import AuditLog
 from workspace.models import Workspace
 from users.models import User
@@ -253,3 +252,47 @@ def test_make_json_safe_raises_type_error_for_unsupported_value():
         match="Unsupported value for AuditLog JSONField: object",
     ):
         make_json_safe(value)
+
+@pytest.mark.django_db
+def test_deleted_task_log_stays_visible_to_owner(api_client, owner, task):
+    api_client.force_authenticate(user=owner)
+
+    response = api_client.delete(f"/api/tasks/{task.id}/")
+    assert response.status_code == 204
+
+    response = api_client.get("/api/audits/?action=DELETE&entity_type=TASK")
+
+    assert response.status_code == 200
+    assert [item["entity_id"] for item in response.data["results"]] == [task.id]
+
+
+@pytest.mark.django_db
+def test_deleted_project_log_stays_visible_to_owner(api_client, owner, project):
+    api_client.force_authenticate(user=owner)
+
+    response = api_client.delete(f"/api/projects/{project.id}/")
+    assert response.status_code == 204
+
+    response = api_client.get("/api/audits/?action=DELETE&entity_type=PROJECT")
+
+    assert [item["entity_id"] for item in response.data["results"]] == [project.id]
+
+
+@pytest.mark.django_db
+def test_logs_of_deleted_workspace_stay_visible_to_owner_only(
+    api_client, owner, member, workspace, project
+):
+    api_client.force_authenticate(user=owner)
+    api_client.delete(f"/api/projects/{project.id}/")
+    workspace_id = workspace.id
+    response = api_client.delete(f"/api/workspaces/{workspace_id}/")
+    assert response.status_code == 204
+
+    response = api_client.get("/api/audits/")
+    assert {
+        (item["entity_type"], item["action"])
+        for item in response.data["results"]
+    } >= {("PROJECT", "DELETE"), ("WORKSPACE", "DELETE")}
+
+    api_client.force_authenticate(user=member)
+    assert api_client.get("/api/audits/").data["results"] == []

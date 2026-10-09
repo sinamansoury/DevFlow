@@ -12,7 +12,7 @@ from rest_framework.permissions import IsAuthenticated
 from drf_spectacular.utils import (extend_schema,OpenApiParameter,)
 
 from audit.models import AuditLog
-from audit.utils import make_json_safe
+from audit.utils import log_action, make_json_safe
 from .models import Task
 from .permissions import (
     IsTaskWorkspaceMember,
@@ -134,12 +134,13 @@ class TaskCreateView(generics.CreateAPIView):
                 project = project
             )
 
-            AuditLog.objects.create(
+            log_action(
                 user=self.request.user,
                 entity_type="TASK",
                 entity_id=task.id,
                 entity_name=task.title,
                 action=AuditLog.Action.CREATE,
+                workspace_id=project.workspace_id,
             )
 
 class TaskRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
@@ -227,11 +228,6 @@ class TaskRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
         task = serializer.instance
         workspace = task.project.workspace
 
-        serializer.validated_data.pop(
-            "finished_date",
-            None,
-        )
-
         new_status = serializer.validated_data.get(
             "status",
             task.status,
@@ -285,12 +281,22 @@ class TaskRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
                 task.refresh_from_db()
 
                 if old_values:
-                    AuditLog.objects.create(
+                    # finished_date follows status automatically, so a change
+                    # of only status (+ finished_date) is a status change.
+                    changed = set(old_values) - {"finished_date"}
+                    action = (
+                        AuditLog.Action.UPDATE_STATUS
+                        if changed == {"status"}
+                        else AuditLog.Action.UPDATE
+                    )
+
+                    log_action(
                         user=self.request.user,
                         entity_type="TASK",
                         entity_id=task.id,
                         entity_name=task.title,
-                        action=AuditLog.Action.UPDATE,
+                        action=action,
+                        workspace_id=workspace.id,
                         old_value=old_values,
                         new_value=new_values,
                     )
@@ -313,12 +319,13 @@ class TaskRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
             task.refresh_from_db()
 
             if old_status != task.status:
-                AuditLog.objects.create(
+                log_action(
                     user=self.request.user,
                     entity_type="TASK",
                     entity_id=task.id,
                     entity_name=task.title,
                     action=AuditLog.Action.UPDATE_STATUS,
+                    workspace_id=workspace.id,
                     old_value={
                         "status": old_status,
                     },
@@ -329,12 +336,13 @@ class TaskRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
     def perform_destroy(self, instance):
 
         with transaction.atomic():
-            AuditLog.objects.create(
+            log_action(
                 user=self.request.user,
                 entity_type="TASK",
                 entity_id=instance.id,
                 entity_name=instance.title,
                 action=AuditLog.Action.DELETE,
+                workspace_id=instance.project.workspace_id,
             )
 
             instance.delete()

@@ -1,19 +1,16 @@
 from django.db import transaction
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
-from django_filters.rest_framework import DjangoFilterBackend
 
 from rest_framework import generics
-from rest_framework.filters import SearchFilter, OrderingFilter
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.exceptions import PermissionDenied
 
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 
 from .models import Project
 from .serializers import ProjectSerializer
 from audit.models import AuditLog
-from audit.utils import make_json_safe
+from audit.utils import log_action, make_json_safe
 from .permissions import (
     IsProjectWorkspaceMember,
     IsProjectWorkspaceOwner,
@@ -104,12 +101,13 @@ class ProjectCreateView(generics.CreateAPIView):
                 workspace=workspace
             )
 
-            AuditLog.objects.create(
+            log_action(
                 user=self.request.user,
                 entity_type="PROJECT",
                 entity_id=project.id,
                 entity_name=project.name,
                 action=AuditLog.Action.CREATE,
+                workspace_id=workspace.id,
             )
 
 
@@ -211,12 +209,13 @@ class ProjectRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
                 for field, value in serializer.validated_data.items()
             })
 
-            AuditLog.objects.create(
+            log_action(
                 user=self.request.user,
                 entity_type="PROJECT",
                 entity_id=project.id,
                 entity_name=project.name,
                 action=AuditLog.Action.UPDATE,
+                workspace_id=project.workspace_id,
                 old_value=old_value,
                 new_value=new_value,
             )
@@ -226,12 +225,13 @@ class ProjectRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
         project_name = instance.name
 
         with transaction.atomic():
-            AuditLog.objects.create(
+            log_action(
                 user=self.request.user,
                 entity_type="PROJECT",
                 entity_id=project_id,
                 entity_name=project_name,
                 action=AuditLog.Action.DELETE,
+                workspace_id=instance.workspace_id,
             )
 
             instance.delete()

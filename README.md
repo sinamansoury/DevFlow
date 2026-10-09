@@ -1,676 +1,146 @@
-\# DevFlow
+# DevFlow
 
+[![CI](https://github.com/sinamansoury/devflow/actions/workflows/ci.yml/badge.svg)](https://github.com/sinamansoury/devflow/actions/workflows/ci.yml)
 
+DevFlow یک سیستم مدیریت Workspace، Project و Task است. بک‌اند با Django و Django REST Framework و فرانت‌اند با React (Vite) نوشته شده است.
 
-DevFlow یک REST API برای مدیریت Workspace، Project و Task است که با Django و Django REST Framework توسعه داده شده است.
+## Features
 
+- ثبت‌نام و ورود با JWT (ایمیل به‌عنوان نام کاربری) و Throttle برای login و register
+- مدیریت Workspace و اعضای آن
+- مدیریت Project و Task
+- سطح دسترسی بر اساس نقش Owner و Member
+- تعیین Task به اعضای Workspace و مدیریت وضعیت (`TODO`, `IN_PROGRESS`, `DONE`)
+- ثبت خودکار `finished_date` هنگام تکمیل Task
+- Audit Log برای عملیات مهم (شامل حذف‌ها)
+- Filtering، Searching، Ordering و Pagination
+- مستندات Swagger / OpenAPI
+- تست‌های خودکار با pytest و CI با GitHub Actions
 
+## Technologies
 
-این پروژه شامل احراز هویت JWT، سیستم سطح دسترسی، مدیریت اعضای Workspace، فیلتر و جستجو، Pagination، مرتب‌سازی و ثبت Audit Log برای فعالیت‌های مهم است.
+- Backend: Python, Django, Django REST Framework, Simple JWT, django-filter, drf-spectacular, SQLite
+- Frontend: React, Vite, React Router, Axios
+- Tooling: pytest, pytest-django, ruff, GitHub Actions
 
-
-
-\## Features
-
-
-
-\* ثبت‌نام و ورود کاربران
-
-\* احراز هویت با JWT
-
-\* مدیریت Workspace
-
-\* مدیریت اعضای Workspace
-
-\* مدیریت Project
-
-\* مدیریت Task
-
-\* سیستم Permission بر اساس Owner و Member
-
-\* تعیین Task به اعضای Workspace
-
-\* مدیریت وضعیت Task
-
-\* ثبت خودکار `finished\_date` هنگام تکمیل Task
-
-\* Audit Log برای عملیات مهم
-
-\* Filtering
-
-\* Searching
-
-\* Ordering
-
-\* Pagination
-
-\* Swagger / OpenAPI documentation
-
-
-
-\## Technologies
-
-
-
-\* Python
-
-\* Django
-
-\* Django REST Framework
-
-\* Simple JWT
-
-\* Django Filter
-
-\* drf-spectacular
-
-\* SQLite
-
-
-
-\## Project Structure
-
-
+## Project Structure
 
 ```text
-
 DevFlow/
-
-├── audit/
-
-├── config/
-
-│   └── settings/
-
-│       ├── base.py
-
-│       ├── development.py
-
-│       └── production.py
-
-├── project/
-
-├── task/
-
-├── users/
-
-├── workspace/
-
-├── manage.py
-
-├── requirements.txt
-
-├── .env
-
-└── .env.example
-
+├── backend/
+│   ├── audit/
+│   ├── config/
+│   │   └── settings/
+│   │       ├── base.py
+│   │       ├── development.py
+│   │       └── production.py
+│   ├── project/
+│   ├── task/
+│   ├── users/
+│   ├── workspace/
+│   ├── conftest.py
+│   ├── manage.py
+│   ├── pytest.ini
+│   ├── requirements.txt
+│   └── requirements-dev.txt
+├── frontend/
+└── .github/workflows/ci.yml
 ```
 
+## Getting Started
 
-
-\## Installation
-
-
-
-\### 1. Clone the repository
-
-
+### Backend
 
 ```bash
-
-git clone <repository-url>
-
-cd DevFlow
-
-```
-
-
-
-\### 2. Create a virtual environment
-
-
-
-Windows:
-
-
-
-```bash
+git clone https://github.com/sinamansoury/devflow.git
+cd devflow/backend
 
 python -m venv .venv
+source .venv/bin/activate        # Windows: .venv\Scripts\activate
 
+pip install -r requirements-dev.txt
+cp .env.example .env             # then set a real SECRET_KEY
+
+python manage.py migrate
+python manage.py runserver
 ```
 
+API در آدرس `http://127.0.0.1:8000/` در دسترس است.
 
-
-Activate it:
-
-
-
-```bash
-
-.venv\\Scripts\\activate
-
-```
-
-
-
-\### 3. Install dependencies
-
-
-
-```bash
-
-pip install -r requirements.txt
-
-```
-
-
-
-\### 4. Configure environment variables
-
-
-
-Create a `.env` file in the project root:
-
-
+فایل `.env` باید داخل پوشه‌ی `backend/` باشد:
 
 ```env
-
-SECRET\_KEY=your-secret-key
-
+SECRET_KEY=your-secret-key
 DEBUG=True
-
 ```
 
-
-
-برای محیط واقعی، مقدار `SECRET\_KEY` باید یک مقدار امن و غیرقابل حدس باشد.
-
-
-
-\### 5. Run migrations
-
-
+### Frontend
 
 ```bash
-
-python manage.py migrate
-
+cd frontend
+npm install
+npm run dev
 ```
 
+فرانت‌اند درخواست‌های `/api` را از طریق proxy ی Vite به `http://127.0.0.1:8000` می‌فرستد، پس بک‌اند باید در حال اجرا باشد.
 
+## API Documentation
 
-\### 6. Run the development server
+- Swagger UI: `http://127.0.0.1:8000/api/docs/`
+- OpenAPI schema: `http://127.0.0.1:8000/api/schema/`
 
+## Authentication
 
+| Method | Endpoint | Description |
+| --- | --- | --- |
+| POST | `/api/auth/register/` | ساخت حساب کاربری |
+| POST | `/api/auth/login/` | دریافت Access Token و Refresh Token |
+| POST | `/api/auth/refresh/` | دریافت Access Token جدید |
+| GET | `/api/auth/me/` | اطلاعات کاربر فعلی |
 
-```bash
+سایر endpointها نیاز به هدر `Authorization: Bearer <access_token>` دارند.
+Access Token ۳۰ دقیقه و Refresh Token ۷ روز اعتبار دارد.
 
-python manage.py runserver
+## Resources and Permissions
 
-```
+| Resource | Prefix | Owner | Member |
+| --- | --- | --- | --- |
+| Workspace | `/api/workspaces/` | ایجاد، ویرایش، حذف، مدیریت اعضا | مشاهده |
+| Project | `/api/projects/` | ایجاد، ویرایش، حذف | مشاهده |
+| Task | `/api/tasks/` | ایجاد، ویرایش، حذف، تعیین مسئول | مشاهده و تغییر `status` |
+| Audit Log | `/api/audits/` | مشاهده‌ی تاریخچه‌ی Workspaceهای خود | — |
 
+نکات:
 
+- Project با `POST /api/projects/workspace/<workspace_id>/` ساخته می‌شود و Task با `POST /api/tasks/projects/<project_id>/` ساخته می‌شود.
+- با تغییر وضعیت Task به `DONE` مقدار `finished_date` خودکار ثبت می‌شود و با خروج از `DONE` پاک می‌شود.
+- با حذف یک عضو از Workspace، Taskهای او به Owner منتقل می‌شوند.
 
-API در آدرس زیر در دسترس خواهد بود:
-
-
+## Filtering, Search and Ordering
 
 ```text
-
-http://127.0.0.1:8000/
-
-```
-
-
-
-\## API Documentation
-
-
-
-مستندات API با Swagger و OpenAPI در دسترس است:
-
-
-
-```text
-
-http://127.0.0.1:8000/api/docs/
-
-```
-
-
-
-Schema:
-
-
-
-```text
-
-http://127.0.0.1:8000/api/schema/
-
-```
-
-
-
-در Swagger می‌توان Endpointها را مشاهده و مستقیماً تست کرد.
-
-
-
-\## Authentication
-
-
-
-احراز هویت API با JWT انجام می‌شود.
-
-
-
-\### Register
-
-
-
-```text
-
-POST /api/auth/register/
-
-```
-
-
-
-برای ساخت حساب کاربری جدید.
-
-
-
-\### Login
-
-
-
-```text
-
-POST /api/auth/login/
-
-```
-
-
-
-برای دریافت:
-
-
-
-\* Access Token
-
-\* Refresh Token
-
-
-
-\### Refresh Token
-
-
-
-```text
-
-POST /api/auth/refresh/
-
-```
-
-
-
-برای دریافت Access Token جدید.
-
-
-
-\### Current User
-
-
-
-```text
-
-GET /api/auth/me/
-
-```
-
-
-
-برای دریافت اطلاعات کاربر فعلی.
-
-
-
-Endpointهای محافظت‌شده نیاز به JWT Access Token دارند.
-
-
-
-\## Workspace
-
-
-
-Workspace محیط اصلی سازماندهی Projectها و Taskها است.
-
-
-
-Owner می‌تواند:
-
-
-
-\* Workspace را ایجاد کند.
-
-\* Workspace را ویرایش کند.
-
-\* Workspace را حذف کند.
-
-\* اعضا را اضافه کند.
-
-\* اعضا را حذف کند.
-
-\* اعضای Workspace را مشاهده کند.
-
-
-
-Member می‌تواند Workspaceهایی را که به آن دسترسی دارد مشاهده کند.
-
-
-
-\## Project
-
-
-
-هر Project متعلق به یک Workspace است.
-
-
-
-Owner Workspace می‌تواند:
-
-
-
-\* Project ایجاد کند.
-
-\* Project را ویرایش کند.
-
-\* Project را حذف کند.
-
-
-
-اعضای Workspace می‌توانند Projectها را مشاهده کنند.
-
-
-
-Projectها از امکانات زیر پشتیبانی می‌کنند:
-
-
-
-\* Filtering بر اساس Workspace
-
-\* Search بر اساس نام و توضیحات
-
-\* Ordering
-
-\* Pagination
-
-
-
-\## Task
-
-
-
-Taskها به Project متصل هستند.
-
-
-
-Owner Workspace می‌تواند:
-
-
-
-\* Task ایجاد کند.
-
-\* Task را ویرایش کند.
-
-\* Task را حذف کند.
-
-\* Task را به اعضای Workspace یا Owner اختصاص دهد.
-
-
-
-Member می‌تواند Taskها را مشاهده کند و وضعیت Task را تغییر دهد.
-
-
-
-Taskها از امکانات زیر پشتیبانی می‌کنند:
-
-
-
-\* Filtering بر اساس Status
-
-\* Filtering بر اساس Project
-
-\* Filtering بر اساس Assigned User
-
-\* Search بر اساس Title و Description
-
-\* Ordering
-
-\* Pagination
-
-
-
-هنگام تغییر Status به `DONE`، مقدار `finished\_date` به صورت خودکار ثبت می‌شود.
-
-
-
-در صورت خارج شدن Task از وضعیت `DONE`، مقدار `finished\_date` حذف می‌شود.
-
-
-
-\## Audit Log
-
-
-
-فعالیت‌های مهم سیستم در Audit Log ثبت می‌شوند.
-
-
-
-از جمله:
-
-
-
-\* ایجاد Workspace
-
-\* ویرایش Workspace
-
-\* حذف Workspace
-
-\* اضافه کردن Member
-
-\* حذف Member
-
-\* ایجاد Project
-
-\* ویرایش Project
-
-\* حذف Project
-
-\* ایجاد Task
-
-\* ویرایش Task
-
-\* تغییر وضعیت Task
-
-\* حذف Task
-
-
-
-Audit Log شامل اطلاعاتی مانند:
-
-
-
-\* User
-
-\* Entity Type
-
-\* Entity ID
-
-\* Entity Name
-
-\* Action
-
-\* Old Value
-
-\* New Value
-
-\* Created At
-
-
-
-است.
-
-
-
-\## Filtering, Search and Ordering
-
-
-
-API از Filtering، Search و Ordering پشتیبانی می‌کند.
-
-
-
-مثال:
-
-
-
-```text
-
 /api/tasks/?status=TODO
-
-```
-
-
-
-Search:
-
-
-
-```text
-
+/api/tasks/?project=1&assigned_to=2
 /api/tasks/?search=login
-
-```
-
-
-
-Ordering:
-
-
-
-```text
-
-/api/tasks/?ordering=-created\_at
-
-```
-
-
-
-Pagination:
-
-
-
-```text
-
+/api/tasks/?ordering=-created_at
 /api/tasks/?page=2
-
+/api/audits/?entity_type=TASK&action=DELETE
 ```
 
+## Audit Log
 
+عملیات مهم زیر ثبت می‌شوند: ایجاد، ویرایش و حذف Workspace، Project و Task، افزودن و حذف عضو، و تغییر وضعیت Task.
 
-\## Permissions
+هر رکورد شامل `user`، `entity_type`، `entity_id`، `entity_name`، `action`، `old_value`، `new_value` و `created_at` است. شناسه‌ی Workspace هم روی خود لاگ ذخیره می‌شود، بنابراین تاریخچه‌ی موجودیت‌های حذف‌شده برای Owner قابل مشاهده می‌ماند.
 
-
-
-سطح دسترسی‌ها بر اساس نقش کاربر در Workspace کنترل می‌شود.
-
-
-
-\### Workspace Owner
-
-
-
-Owner می‌تواند Workspace و منابع مربوط به آن را مدیریت کند.
-
-
-
-\### Workspace Member
-
-
-
-Member می‌تواند منابع Workspace را مشاهده کند و بر اساس قوانین هر resource عملیات مجاز را انجام دهد.
-
-
-
-برای مثال، در Task، Member فقط مجاز به تغییر Status است.
-
-
-
-تمام Endpointهای محافظت‌شده نیاز به احراز هویت دارند.
-
-
-
-\## Development
-
-
-
-برای اجرای پروژه در محیط توسعه:
-
-
+## Testing
 
 ```bash
-
-python manage.py runserver
-
+cd backend
+pytest
+ruff check .
 ```
 
-
-
-برای ساخت migration در صورت تغییر مدل‌ها:
-
-
-
-```bash
-
-python manage.py makemigrations
-
-```
-
-
-
-و سپس:
-
-
-
-```bash
-
-python manage.py migrate
-
-```
-
-
-
-\## Testing
-
-
-
-برای اجرای تست‌ها:
-
-
-
-```bash
-
-python manage.py test
-
-```
-
-
-
-\## License
-
-
+## License
 
 This project is developed for educational and portfolio purposes.
-
-
-

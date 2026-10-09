@@ -109,26 +109,12 @@ class TaskSerializer(serializers.ModelSerializer):
             deadline = self.instance.deadline
 
 
-        finished_date = attrs.get("finished_date")
-
-
         if started_date and deadline:
 
             if deadline < started_date:
                 raise serializers.ValidationError({
                     "deadline": (
                         "مهلت انجام نمی‌تواند "
-                        "قبل از تاریخ شروع باشد."
-                    )
-                })
-
-
-        if started_date and finished_date:
-
-            if finished_date < started_date:
-                raise serializers.ValidationError({
-                    "finished_date": (
-                        "تاریخ پایان نمی‌تواند "
                         "قبل از تاریخ شروع باشد."
                     )
                 })

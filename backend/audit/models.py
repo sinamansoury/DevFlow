@@ -22,6 +22,14 @@ class AuditLog(models.Model):
     entity_id = models.IntegerField()
     entity_name = models.CharField(max_length=150)
 
+    # Workspace the entity belongs to. Stored on the log itself so the
+    # history stays visible after the entity (or its parent) is deleted.
+    workspace_id = models.IntegerField(
+        blank=True,
+        null=True,
+        db_index=True,
+    )
+
     action = models.CharField(
         max_length=20,
         choices=Action.choices

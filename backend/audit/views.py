@@ -60,7 +60,20 @@ class AuditLogListView(generics.ListAPIView):
             project_id__in=project_ids
         ).values_list("id", flat=True)
 
+        # Logs of workspaces that were deleted: nobody owns them anymore, so
+        # keep them visible to the user who performed the actions.
+        deleted_workspace_logs = Q(
+            user=self.request.user,
+            workspace_id__isnull=False,
+        ) & ~Q(
+            workspace_id__in=Workspace.objects.values("id")
+        )
+
         queryset = AuditLog.objects.filter(
+            Q(workspace_id__in=workspace_ids)
+            |
+            deleted_workspace_logs
+            |
             Q(
                 entity_type="WORKSPACE",
                 entity_id__in=workspace_ids,

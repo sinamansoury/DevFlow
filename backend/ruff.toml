@@ -1,0 +1,9 @@
+line-length = 100
+extend-exclude = ["migrations"]
+
+[lint]
+select = ["E9", "F"]
+
+[lint.per-file-ignores]
+# Django settings modules use `from .base import *` by design.
+"config/settings/*.py" = ["F403", "F405"]

@@ -203,7 +203,7 @@ def test_user_task_patch_status(request,api_client,user_fixture,expected_status,
                 entity_type="TASK",
                 entity_id=updated_task.id,
                 user_id=user.id,
-                action=AuditLog.Action.UPDATE,
+                action=AuditLog.Action.UPDATE_STATUS,
                 entity_name=updated_task.title,
                 old_value={
                     "status": "TODO",

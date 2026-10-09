@@ -4,6 +4,8 @@ from uuid import UUID
 
 from django.db.models import Model
 
+from .models import AuditLog
+
 
 def make_json_safe(value):
     """
@@ -33,4 +35,28 @@ def make_json_safe(value):
 
     raise TypeError(
         f"Unsupported value for AuditLog JSONField: {type(value).__name__}"
+    )
+
+
+def log_action(
+    *,
+    user,
+    entity_type,
+    entity_id,
+    entity_name,
+    action,
+    workspace_id=None,
+    old_value=None,
+    new_value=None,
+):
+    """Create an AuditLog row. Call inside the same transaction as the change."""
+    return AuditLog.objects.create(
+        user=user,
+        entity_type=entity_type,
+        entity_id=entity_id,
+        entity_name=entity_name,
+        action=action,
+        workspace_id=workspace_id,
+        old_value=old_value,
+        new_value=new_value,
     )

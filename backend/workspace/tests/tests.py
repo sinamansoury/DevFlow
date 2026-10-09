@@ -503,3 +503,24 @@ def test_owner_cannot_add_member_with_invalid_email(api_client,owner,workspace,)
         entity_id=workspace.id,
         action=AuditLog.Action.ADD_MEMBER,
     ).exists()
+
+@pytest.mark.django_db
+def test_removing_member_reassigns_their_tasks_to_owner(
+    api_client, owner, member, workspace, task
+):
+    assert task.assigned_to == member
+    api_client.force_authenticate(user=owner)
+
+    response = api_client.delete(
+        f"/api/workspaces/{workspace.id}/members/delete/{member.id}/"
+    )
+
+    assert response.status_code == 204
+    task.refresh_from_db()
+    assert task.assigned_to == owner
+
+    log = AuditLog.objects.get(
+        entity_type="WORKSPACE",
+        action=AuditLog.Action.REMOVE_MEMBER,
+    )
+    assert log.new_value == {"reassigned_tasks": 1}

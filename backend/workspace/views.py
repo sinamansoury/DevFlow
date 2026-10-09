@@ -6,7 +6,7 @@ from rest_framework import generics
 from rest_framework.permissions import IsAuthenticated
 
 from drf_spectacular.utils import extend_schema
-from rest_framework.exceptions import ValidationError
+from rest_framework.exceptions import PermissionDenied, ValidationError
 
 from .models import Workspace
 from .serializers import (
@@ -16,7 +16,8 @@ from .serializers import (
 )
 from users.models import User
 from audit.models import AuditLog
-from audit.utils import make_json_safe
+from audit.utils import log_action, make_json_safe
+from task.models import Task
 from .permissions import (
     IsWorkspaceMember,
     IsWorkspaceOwner,
@@ -73,12 +74,13 @@ class WorkspaceListCreateView(generics.ListCreateAPIView):
                 self.request.user
             )
 
-            AuditLog.objects.create(
+            log_action(
                 user=self.request.user,
                 entity_type="WORKSPACE",
                 entity_id=workspace.id,
                 entity_name=workspace.name,
                 action=AuditLog.Action.CREATE,
+                workspace_id=workspace.id,
             )
 
 
@@ -175,24 +177,26 @@ class WorkspaceRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
                 for field, value in serializer.validated_data.items()
             })
 
-            AuditLog.objects.create(
+            log_action(
                 user=self.request.user,
                 entity_type="WORKSPACE",
                 entity_id=workspace.id,
                 entity_name=workspace.name,
                 action=AuditLog.Action.UPDATE,
+                workspace_id=workspace.id,
                 old_value=old_value,
                 new_value=new_value,
             )
 
     def perform_destroy(self, instance):
         with transaction.atomic():
-            AuditLog.objects.create(
+            log_action(
                 user=self.request.user,
                 entity_type="WORKSPACE",
                 entity_id=instance.id,
                 entity_name=instance.name,
                 action=AuditLog.Action.DELETE,
+                workspace_id=instance.id,
             )
 
             instance.delete()
@@ -261,12 +265,13 @@ class WorkspaceMemberAddView(generics.CreateAPIView):
         with transaction.atomic():
             workspace.members.add(user)
 
-            AuditLog.objects.create(
+            log_action(
                 user=self.request.user,
                 entity_type="WORKSPACE",
                 entity_id=workspace.id,
                 entity_name=workspace.name,
                 action=AuditLog.Action.ADD_MEMBER,
+                workspace_id=workspace.id,
                 new_value={
                     "user_id": user.id,
                     "email": user.email,
@@ -303,20 +308,32 @@ class WorkspaceMemberDeleteView(generics.DestroyAPIView):
 
     def perform_destroy(self, instance):
         if instance == self.workspace.owner:
-            from rest_framework.exceptions import PermissionDenied
             raise PermissionDenied()
 
         with transaction.atomic():
             self.workspace.members.remove(instance)
 
-            AuditLog.objects.create(
+            # assigned_to is required, so hand the removed member's tasks
+            # back to the workspace owner instead of leaving them orphaned.
+            reassigned = Task.objects.filter(
+                project__workspace=self.workspace,
+                assigned_to=instance,
+            ).update(assigned_to=self.workspace.owner)
+
+            log_action(
                 user=self.request.user,
                 entity_type="WORKSPACE",
                 entity_id=self.workspace.id,
                 entity_name=self.workspace.name,
                 action=AuditLog.Action.REMOVE_MEMBER,
+                workspace_id=self.workspace.id,
                 old_value={
                     "user_id": instance.id,
                     "email": instance.email,
                 },
+                new_value=(
+                    {"reassigned_tasks": reassigned}
+                    if reassigned
+                    else None
+                ),
             )
