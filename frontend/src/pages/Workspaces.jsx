@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import api from '../services/api'
 import Sidebar from '../components/Sidebar'
+import { getApiErrorMessage } from '../services/errors'
 function Workspaces() {
   const [workspaces, setWorkspaces] = useState([])
   const [loading, setLoading] = useState(true)
@@ -24,7 +25,7 @@ function Workspaces() {
       setWorkspaces(response.data.results || response.data)
       setTotalPages(response.data.count ? Math.ceil(response.data.count / 9) : 1)
     } catch (error) {
-      setError('دریافت Workspaceها انجام نشد.')
+      setError(getApiErrorMessage(error, 'دریافت Workspaceها انجام نشد.'))
     } finally {
       setLoading(false)
     }
@@ -56,17 +57,7 @@ function Workspaces() {
       setPage(1)
       await loadWorkspaces()
     } catch (error) {
-      const data = error.response?.data
-
-      if (data && typeof data === 'object') {
-        setError(
-          Object.values(data)
-            .flat()
-            .join(' ')
-        )
-      } else {
-        setError('ساخت Workspace انجام نشد.')
-      }
+      setError(getApiErrorMessage(error, 'ساخت Workspace انجام نشد.'))
     }
   }
 
