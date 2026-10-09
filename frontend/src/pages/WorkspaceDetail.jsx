@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import api from '../services/api'
 import Sidebar from '../components/Sidebar'
+import { getApiErrorMessage } from '../services/errors'
 function WorkspaceDetail() {
   const { id } = useParams()
 
@@ -32,10 +33,7 @@ function WorkspaceDetail() {
 
       setWorkspace(workspaceResponse.data)
     } catch (error) {
-      setError(
-        error.response?.data?.detail ||
-        'دریافت Workspace انجام نشد.'
-      )
+      setError(getApiErrorMessage(error, 'دریافت Workspace انجام نشد.'))
     } finally {
       setLoading(false)
     }
@@ -99,17 +97,7 @@ function WorkspaceDetail() {
 
       loadData()
     } catch (error) {
-      const data = error.response?.data
-
-      if (data && typeof data === 'object') {
-        setError(
-          Object.values(data)
-            .flat()
-            .join(' ')
-        )
-      } else {
-        setError('ساخت پروژه انجام نشد.')
-      }
+      setError(getApiErrorMessage(error, 'ساخت پروژه انجام نشد.'))
     }
   }
 
