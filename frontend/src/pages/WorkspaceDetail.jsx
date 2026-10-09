@@ -83,10 +83,9 @@ function WorkspaceDetail() {
     e.preventDefault()
 
     try {
-      await api.post('/projects/', {
+      await api.post(`/projects/workspace/${id}/`, {
         name: form.name,
         description: form.description,
-        workspace: Number(id),
       })
 
       setForm({
@@ -184,15 +183,10 @@ function WorkspaceDetail() {
             </p>
           </div>
 
-          <Link
-            to="/workspaces"
-            style={{
-              color: '#818cf8',
-              fontSize: '13px',
-            }}
-          >
-            ← همه Workspaceها
-          </Link>
+          <div className="topbar-actions">
+            <Link to={`/workspaces/${id}/members`} className="secondary-button">مدیریت اعضا</Link>
+            <Link to="/workspaces" className="text-link">← همه Workspaceها</Link>
+          </div>
 
         </div>
 
