@@ -12,6 +12,7 @@ from rest_framework.permissions import IsAuthenticated
 from drf_spectacular.utils import (extend_schema,OpenApiParameter,)
 
 from audit.models import AuditLog
+from audit.utils import make_json_safe
 from .models import Task
 from .permissions import (
     IsTaskWorkspaceMember,
@@ -225,15 +226,6 @@ class TaskRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
     def perform_update(self, serializer):
         task = serializer.instance
         workspace = task.project.workspace
-
-        def make_json_safe(value):
-            if hasattr(value, "isoformat"):
-                return value.isoformat()
-
-            if hasattr(value, "pk"):
-                return value.pk
-
-            return value
 
         serializer.validated_data.pop(
             "finished_date",
