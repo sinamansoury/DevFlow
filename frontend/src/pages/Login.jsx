@@ -1,10 +1,11 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import api from '../services/api'
 import { getApiErrorMessage } from '../services/errors'
 
 function Login() {
   const navigate = useNavigate()
+  const location = useLocation()
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -74,6 +75,7 @@ function Login() {
             <p className="auth-form-subtitle">
               برای ورود به DevFlow اطلاعاتت رو وارد کن.
             </p>
+            {location.state?.message && <div className="success-message" role="status">{location.state.message}</div>}
 
             {error && (
               <div className="auth-error">
