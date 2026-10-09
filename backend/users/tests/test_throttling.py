@@ -4,10 +4,6 @@ from rest_framework.throttling import SimpleRateThrottle
 
 @pytest.fixture
 def throttle_rates(monkeypatch):
-    """
-    DRF reads DEFAULT_THROTTLE_RATES once, when the throttle class is
-    defined, so override_settings has no effect. Patch the class attribute.
-    """
 
     def _set(**rates):
         monkeypatch.setattr(SimpleRateThrottle, "THROTTLE_RATES", rates)
