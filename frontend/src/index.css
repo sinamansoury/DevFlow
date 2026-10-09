@@ -1187,3 +1187,8 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   .workspace-list-item > .text-link { font-size: 11px; white-space: nowrap; }
   .user-box { flex-wrap: wrap; }
 }
+
+.pagination { display: flex; align-items: center; justify-content: center; gap: 14px; padding-top: 22px; margin-top: 20px; border-top: 1px solid #1e293b; color: #94a3b8; font-size: 12px; }
+.pagination .secondary-button { min-height: 34px; }
+.pagination .secondary-button:disabled { opacity: .45; cursor: not-allowed; }
+@media (max-width: 760px) { .pagination { gap: 10px; } }
