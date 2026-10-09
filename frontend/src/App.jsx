@@ -7,18 +7,16 @@ import WorkspaceDetail from './pages/WorkspaceDetail'
 import WorkspaceMembers from './pages/WorkspaceMembers'
 import ProjectDetail from './pages/ProjectDetail'
 import Projects from './pages/Projects'
-<<<<<<< Updated upstream
+
 import Tasks from './pages/Tasks'
 import AuditLogs from './pages/AuditLogs'
-=======
-import WorkspaceMembers from './pages/WorkspaceMembers'
->>>>>>> Stashed changes
+
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
-<<<<<<< Updated upstream
+
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/" element={<Dashboard />} />
@@ -30,7 +28,7 @@ function App() {
         <Route path="/tasks" element={<Tasks />} />
         <Route path="/activities" element={<AuditLogs />} />
         <Route path="*" element={<Navigate to="/" replace />} />
-=======
+
 
         <Route
           path="/login"
@@ -73,7 +71,7 @@ function App() {
           element={<Navigate to="/" replace />}
         />
 
->>>>>>> Stashed changes
+
       </Routes>
     </BrowserRouter>
   )

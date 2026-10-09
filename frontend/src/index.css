@@ -1076,7 +1076,7 @@ a {
     }
 
 }
-<<<<<<< Updated upstream
+
 
 /* Shared app controls and data views */
 .text-link { color: #a5b4fc; font-size: 13px; font-weight: 600; }
@@ -1193,5 +1193,4 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .pagination .secondary-button { min-height: 34px; }
 .pagination .secondary-button:disabled { opacity: .45; cursor: not-allowed; }
 @media (max-width: 760px) { .pagination { gap: 10px; } }
-=======
->>>>>>> Stashed changes
+
