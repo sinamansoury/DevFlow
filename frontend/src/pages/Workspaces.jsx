@@ -5,6 +5,8 @@ import Sidebar from '../components/Sidebar'
 function Workspaces() {
   const [workspaces, setWorkspaces] = useState([])
   const [loading, setLoading] = useState(true)
+  const [page, setPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
   const [error, setError] = useState('')
   const [showModal, setShowModal] = useState(false)
 
@@ -17,11 +19,10 @@ function Workspaces() {
     try {
       setLoading(true)
 
-      const response = await api.get('/workspaces/')
+      const response = await api.get(`/workspaces/?page=${page}`)
 
-      setWorkspaces(
-        response.data.results || response.data
-      )
+      setWorkspaces(response.data.results || response.data)
+      setTotalPages(response.data.count ? Math.ceil(response.data.count / 9) : 1)
     } catch (error) {
       setError('دریافت Workspaceها انجام نشد.')
     } finally {
@@ -31,7 +32,7 @@ function Workspaces() {
 
   useEffect(() => {
     loadWorkspaces()
-  }, [])
+  }, [page])
 
   const handleChange = (e) => {
     setForm({
@@ -52,8 +53,8 @@ function Workspaces() {
       })
 
       setShowModal(false)
-
-      loadWorkspaces()
+      setPage(1)
+      await loadWorkspaces()
     } catch (error) {
       const data = error.response?.data
 
@@ -268,6 +269,11 @@ function Workspaces() {
             ))}
 
           </div>
+          {totalPages > 1 && <div className="pagination">
+            <button type="button" className="secondary-button" disabled={page <= 1} onClick={() => setPage((value) => value - 1)}>قبلی</button>
+            <span>صفحه {page} از {totalPages}</span>
+            <button type="button" className="secondary-button" disabled={page >= totalPages} onClick={() => setPage((value) => value + 1)}>بعدی</button>
+          </div>}
 
         )}
 
