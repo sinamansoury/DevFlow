@@ -1,6 +1,6 @@
 
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
-
+import Notifications from './Notifications'
 function Sidebar() {
   const location = useLocation()
   const navigate = useNavigate()
@@ -31,7 +31,7 @@ function Sidebar() {
         <span className="logo">D</span>
         <span>DevFlow</span>
       </Link>
-
+        <Notifications />
       <div className="nav-title">منوی اصلی</div>
 
       <nav aria-label="منوی اصلی">

@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'project',
     'task',
     'audit',
+    'notifications',
     'django_filters',
     'drf_spectacular',
 ]

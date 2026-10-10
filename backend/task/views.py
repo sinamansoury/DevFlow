@@ -20,6 +20,7 @@ from .permissions import (
 )
 from .serializers import TaskSerializer
 from project.models import Project
+from notifications.tasks import create_task_assigned_notification
 
 
 class TaskListView(generics.ListAPIView):
@@ -95,7 +96,6 @@ class TaskListView(generics.ListAPIView):
             .distinct()
         )
 
-
 class TaskCreateView(generics.CreateAPIView):
     serializer_class = TaskSerializer
     permission_classes = [
@@ -141,6 +141,27 @@ class TaskCreateView(generics.CreateAPIView):
                 entity_name=task.title,
                 action=AuditLog.Action.CREATE,
                 workspace_id=project.workspace_id,
+            )
+            recipient_id = task.assigned_to_id
+            task_id = task.id
+            task_title = task.title
+
+            user = self.request.user
+
+            assigner_name = (
+                    user.get_full_name().strip()
+                    or getattr(user, "username", "")
+                    or getattr(user, "email", "")
+                    or "کاربر"
+            )
+
+            transaction.on_commit(
+                lambda: create_task_assigned_notification.delay(
+                    recipient_id=recipient_id,
+                    task_id=task_id,
+                    task_title=task_title,
+                    assigner_name=assigner_name,
+                )
             )
 
 class TaskRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
@@ -228,6 +249,14 @@ class TaskRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
         task = serializer.instance
         workspace = task.project.workspace
 
+        if (
+                workspace.owner != self.request.user
+                and task.assigned_to_id != self.request.user.id
+        ):
+            raise PermissionDenied(
+                "فقط می‌توانید وضعیت تسک‌های اختصاص‌یافته به خودتان را تغییر دهید."
+            )
+
         new_status = serializer.validated_data.get(
             "status",
             task.status,
@@ -247,6 +276,7 @@ class TaskRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
 
                 old_values = {}
                 new_values = {}
+                old_assignee_id = task.assigned_to_id
 
 
                 for field, new_value in serializer.validated_data.items():
@@ -279,10 +309,35 @@ class TaskRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
                 )
 
                 task.refresh_from_db()
+                if (
+                    old_assignee_id != task.assigned_to_id
+                    and task.assigned_to_id is not None
+                ):
+                    recipient_id = task.assigned_to_id
+                    task_id = task.id
+                    task_title = task.title
+                    user = self.request.user
+                    assigner_name = (
+                            user.get_full_name().strip()
+                            or getattr(user, "username", "")
+                            or getattr(user, "email","")
+                            or "کاربر"
+                    )
+
+                    transaction.on_commit(
+                        lambda recipient_id=recipient_id,
+                            task_id=task_id,
+                            task_title=task_title,
+                            assigner_name=assigner_name:
+                            create_task_assigned_notification.delay(
+                                recipient_id=recipient_id,
+                                task_id=task_id,
+                                task_title=task_title,
+                                assigner_name=assigner_name, )
+                    )
 
                 if old_values:
-                    # finished_date follows status automatically, so a change
-                    # of only status (+ finished_date) is a status change.
+
                     changed = set(old_values) - {"finished_date"}
                     action = (
                         AuditLog.Action.UPDATE_STATUS
@@ -333,6 +388,7 @@ class TaskRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
                         "status": task.status,
                     },
                 )
+
     def perform_destroy(self, instance):
 
         with transaction.atomic():
