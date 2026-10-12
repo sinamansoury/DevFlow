@@ -13,15 +13,19 @@ DevFlow یک سیستم مدیریت Workspace، Project و Task است. بک‌
 - تعیین Task به اعضای Workspace و مدیریت وضعیت (`TODO`, `IN_PROGRESS`, `DONE`)
 - ثبت خودکار `finished_date` هنگام تکمیل Task
 - Audit Log برای عملیات مهم (شامل حذف‌ها)
+- نوتیفیکیشن اختصاص Task به کاربر؛ ساخت آن با Celery و Redis و بعد از commit تراکنش انجام می‌شود
 - Filtering، Searching، Ordering و Pagination
 - مستندات Swagger / OpenAPI
-- تست‌های خودکار با pytest و CI با GitHub Actions
+- تست‌های خودکار با pytest و CI با GitHub Actions (روی PostgreSQL)
+- اجرای کامل پروژه با Docker Compose (PostgreSQL، Redis، Celery worker و Flower)
+- تست بار با Locust
 
 ## Technologies
 
-- Backend: Python, Django, Django REST Framework, Simple JWT, django-filter, drf-spectacular, SQLite
+- Backend: Python, Django, Django REST Framework, Simple JWT, django-filter, drf-spectacular
+- Database / Queue: PostgreSQL, Redis, Celery, Flower
 - Frontend: React, Vite, React Router, Axios
-- Tooling: pytest, pytest-django, ruff, GitHub Actions
+- Tooling: pytest, pytest-django, ruff, Docker Compose, Locust, GitHub Actions
 
 ## Project Structure
 
@@ -30,49 +34,76 @@ DevFlow/
 ├── backend/
 │   ├── audit/
 │   ├── config/
+│   │   ├── celery.py
 │   │   └── settings/
 │   │       ├── base.py
 │   │       ├── development.py
 │   │       └── production.py
+│   ├── notifications/
 │   ├── project/
 │   ├── task/
 │   ├── users/
 │   ├── workspace/
+│   ├── .env.example
+│   ├── Dockerfile
 │   ├── conftest.py
 │   ├── manage.py
 │   ├── pytest.ini
 │   ├── requirements.txt
 │   └── requirements-dev.txt
 ├── frontend/
+├── compose.yaml
+├── locustfile.py
 └── .github/workflows/ci.yml
 ```
 
 ## Getting Started
 
-### Backend
-
 ```bash
 git clone https://github.com/sinamansoury/devflow.git
-cd devflow/backend
+cd devflow
+```
+
+### روش اول: Docker Compose (پیشنهادی)
+
+```bash
+cp backend/.env.example backend/.env   # SECRET_KEY و DB_PASSWORD را تغییر بده
+docker compose up --build
+```
+
+سرویس‌ها:
+
+| Service | Address | Description |
+| --- | --- | --- |
+| web | `http://127.0.0.1:8000` | Django API (با اجرای خودکار `migrate`) |
+| db | `127.0.0.1:5433` | PostgreSQL 16 |
+| redis | داخلی | Broker و result backend برای Celery |
+| worker | داخلی | Celery worker برای ساخت نوتیفیکیشن‌ها |
+| flower | `http://127.0.0.1:5555` | مانیتورینگ Celery |
+
+این تنظیمات برای توسعه است و سرور `runserver` استفاده می‌شود؛ برای production باید از Gunicorn و تنظیمات `production.py` استفاده شود.
+
+### روش دوم: اجرای محلی
+
+برای اجرای محلی به یک PostgreSQL در دسترس و (برای نوتیفیکیشن‌ها) یک Redis نیاز است.
+
+```bash
+cd backend
 
 python -m venv .venv
 source .venv/bin/activate        # Windows: .venv\Scripts\activate
 
 pip install -r requirements-dev.txt
-cp .env.example .env             # then set a real SECRET_KEY
+cp .env.example .env             # مقدارهای SECRET_KEY و DB_* را تنظیم کن
 
 python manage.py migrate
 python manage.py runserver
+
+# در ترمینال دیگر، برای نوتیفیکیشن‌ها:
+celery -A config worker --loglevel=info
 ```
 
-API در آدرس `http://127.0.0.1:8000/` در دسترس است.
-
-فایل `.env` باید داخل پوشه‌ی `backend/` باشد:
-
-```env
-SECRET_KEY=your-secret-key
-DEBUG=True
-```
+API در آدرس `http://127.0.0.1:8000/` در دسترس است. فایل `.env` باید داخل پوشه‌ی `backend/` باشد؛ نمونه‌ی آن در `backend/.env.example` است. برای اجرای محلی بدون Docker مقدار `DB_HOST` را `localhost` بگذار.
 
 ### Frontend
 
@@ -109,6 +140,7 @@ Access Token ۳۰ دقیقه و Refresh Token ۷ روز اعتبار دارد.
 | Project | `/api/projects/` | ایجاد، ویرایش، حذف | مشاهده |
 | Task | `/api/tasks/` | ایجاد، ویرایش، حذف، تعیین مسئول | مشاهده و تغییر `status` |
 | Audit Log | `/api/audits/` | مشاهده‌ی تاریخچه‌ی Workspaceهای خود | — |
+| Notification | `/api/notifications/` | مشاهده و علامت‌گذاری نوتیفیکیشن‌های خود به‌عنوان خوانده‌شده | مشاهده و علامت‌گذاری نوتیفیکیشن‌های خود به‌عنوان خوانده‌شده |
 
 نکات:
 
@@ -139,6 +171,16 @@ Access Token ۳۰ دقیقه و Refresh Token ۷ روز اعتبار دارد.
 cd backend
 pytest
 ruff check .
+```
+
+تست‌ها روی PostgreSQL اجرا می‌شوند و CI هم روی هر push و pull request همین کار را با یک سرویس PostgreSQL انجام می‌دهد.
+
+## Load Testing
+
+```bash
+pip install locust
+DEVFLOW_EMAIL=you@example.com DEVFLOW_PASSWORD=your-password \
+  locust -f locustfile.py --host http://127.0.0.1:8000
 ```
 
 ## License
