@@ -34,6 +34,8 @@ function Notifications() {
   }
 }, [])
 
+  // This effect starts an asynchronous request; state updates belong to its request lifecycle.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => {
     if (localStorage.getItem('access_token')) {
       fetchNotifications()
