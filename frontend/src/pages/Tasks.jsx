@@ -30,6 +30,8 @@ function Tasks() {
     }
   }, [page, status])
 
+  // This effect loads remote data; updates are applied when the request resolves.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { loadTasks() }, [loadTasks])
 
   const changeFilter = (value) => {
