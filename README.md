@@ -183,6 +183,8 @@ DEVFLOW_EMAIL=you@example.com DEVFLOW_PASSWORD=your-password \
   locust -f locustfile.py --host http://127.0.0.1:8000
 ```
 
-## License
+## Project Status
 
-This project is developed for educational and portfolio purposes.
+This repository is a portfolio project intended to demonstrate backend API design, access control, automated testing, and background task processing.
+
+No open-source license is currently provided. Unless a license is added, the source code is available for viewing on GitHub but is not automatically granted permission for reuse or redistribution.
