@@ -63,9 +63,8 @@ function WorkspaceDetail() {
     }
   }, [id, projectPage])
 
-  // This effect loads remote data; updates are applied when the request resolves.
-  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadData()
   }, [loadData])
 
