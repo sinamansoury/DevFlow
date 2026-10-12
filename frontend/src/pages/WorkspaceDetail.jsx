@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import api from '../services/api'
 import Sidebar from '../components/Sidebar'
@@ -23,14 +23,13 @@ function WorkspaceDetail() {
     description: '',
   })
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
-      setLoading(true)
-
       const workspaceResponse = await api.get(
         `/workspaces/${id}/`
       )
 
+      setError('')
       setWorkspace(workspaceResponse.data)
     } catch (error) {
       setError(getApiErrorMessage(error, 'دریافت Workspace انجام نشد.'))
@@ -39,8 +38,6 @@ function WorkspaceDetail() {
     }
 
     try {
-      setProjectLoading(true)
-
       const projectResponse = await api.get(
         `/projects/?workspace=${id}&page=${projectPage}`
       )
@@ -64,11 +61,12 @@ function WorkspaceDetail() {
     } finally {
       setProjectLoading(false)
     }
-  }
+  }, [id, projectPage])
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadData()
-  }, [id, projectPage])
+  }, [loadData])
 
   const handleChange = (e) => {
     setForm({

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import api from '../services/api'
 import Sidebar from '../components/Sidebar'
@@ -15,13 +15,12 @@ function Tasks() {
   const [updatingId, setUpdatingId] = useState(null)
   const [error, setError] = useState('')
 
-  const loadTasks = async () => {
-    setLoading(true)
-    setError('')
+  const loadTasks = useCallback(async () => {
     try {
       const params = new URLSearchParams({ page: String(page) })
       if (status) params.set('status', status)
       const response = await api.get(`/tasks/?${params.toString()}`)
+      setError('')
       setTasks(response.data.results || response.data)
       setTotalPages(response.data.count ? Math.ceil(response.data.count / 9) : 1)
     } catch (requestError) {
@@ -29,9 +28,12 @@ function Tasks() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [page, status])
 
-  useEffect(() => { loadTasks() }, [status, page])
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    loadTasks()
+  }, [loadTasks])
 
   const changeFilter = (value) => {
     setStatus(value)

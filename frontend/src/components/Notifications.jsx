@@ -1,10 +1,12 @@
 
 import { useCallback, useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import api from '../services/api'
 
 function Notifications() {
+  const navigate = useNavigate()
   const [notifications, setNotifications] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(() => Boolean(localStorage.getItem('access_token')))
   const [open, setOpen] = useState(false)
   const [error, setError] = useState('')
 
@@ -33,12 +35,10 @@ function Notifications() {
 }, [])
 
   useEffect(() => {
-    if (!localStorage.getItem('access_token')) {
-      setLoading(false)
-      return
+    if (localStorage.getItem('access_token')) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      fetchNotifications()
     }
-
-    fetchNotifications()
   }, [fetchNotifications])
 
   const handleNotificationClick = async (notification) => {
@@ -66,7 +66,7 @@ function Notifications() {
       setOpen(false)
       // فعلاً به صفحه وظایف می‌رویم؛
       // مسیر جزئیات تسک را در مرحله بعد متصل می‌کنیم.
-      window.location.href = '/tasks'
+      navigate('/tasks')
     }
   }
 
