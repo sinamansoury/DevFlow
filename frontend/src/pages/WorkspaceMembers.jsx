@@ -18,15 +18,13 @@ function WorkspaceMembers() {
   const [notice, setNotice] = useState('')
 
   const loadMembers = useCallback(async () => {
-    setLoading(true)
-    setError('')
-
     try {
       const [workspaceResponse, membersResponse] = await Promise.all([
         api.get(`/workspaces/${id}/`),
         api.get(`/workspaces/${id}/members/`),
       ])
 
+      setError('')
       setWorkspace(workspaceResponse.data)
 
       const data = membersResponse.data
