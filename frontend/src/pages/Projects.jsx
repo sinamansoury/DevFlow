@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import api from '../services/api'
 
@@ -15,19 +15,16 @@ function Projects() {
   const [totalPages, setTotalPages] = useState(1)
 
 
-  const loadProjects = async () => {
+  const loadProjects = useCallback(async () => {
 
     try {
-
-      setLoading(true)
-      setError('')
-
 
       const response = await api.get(
         `/projects/?page=${page}`
       )
 
 
+      setError('')
       setProjects(
         response.data.results ||
         response.data
@@ -62,14 +59,11 @@ function Projects() {
 
     }
 
-  }
-
+  }, [page])
 
   useEffect(() => {
-
     loadProjects()
-
-  }, [page])
+  }, [loadProjects])
 
 
 
