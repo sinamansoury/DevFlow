@@ -1,5 +1,5 @@
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import api from '../services/api'
 import Sidebar from '../components/Sidebar'
@@ -30,11 +30,8 @@ function ProjectDetail() {
     deadline: '',
   })
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
-      setLoading(true)
-      setError('')
-
       const [projectResponse, tasksResponse, userResponse] =
         await Promise.all([
           api.get('/projects/' + id + '/'),
@@ -56,6 +53,7 @@ function ProjectDetail() {
         ? await api.get('/workspaces/' + workspaceId + '/members/')
         : { data: [] }
 
+      setError('')
       setProject(projectResponse.data)
       setCurrentUserId(userId)
       setIsWorkspaceOwner(owner)
@@ -67,11 +65,11 @@ function ProjectDetail() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [id])
 
   useEffect(() => {
     loadData()
-  }, [id])
+  }, [loadData])
 
   const getTasks = (status) => {
     return tasks.filter((task) => task.status === status)
