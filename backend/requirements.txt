@@ -8,3 +8,6 @@ psycopg[binary]>=3.2,<4
 celery>=5.4,<6
 redis>=5.2,<7
 flower
+gunicorn
+whitenoise
+django-cors-headers
